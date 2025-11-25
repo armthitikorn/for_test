@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Admin Panel: Simulator Content</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; padding: 0; margin: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; color: #007bff; margin-bottom: 20px; }
+        .product-selector { text-align: center; margin-bottom: 20px; }
+        .tab-menu { display: flex; flex-wrap: wrap; justify-content: center; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
+        .tab-menu button { background-color: #f8f9fa; border: 1px solid #ddd; border-bottom: none; padding: 10px 15px; cursor: pointer; font-size: 16px; border-radius: 6px 6px 0 0; }
+        .tab-menu button.active { background-color: #fff; border-color: #007bff; color: #007bff; }
+        .tab-content { padding: 20px; border: 1px solid #ddd; border-top: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; }
+        th { background-color: #f0f4f8; }
+        .status-bar { text-align: center; padding: 10px; margin-bottom: 20px; border-radius: 6px; background-color: #e9ecef; }
+        .success-text { color: green; }
+        .error-text { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel: Simulator Content Management</h1>
+        <div id="loadingStatus" class="status-bar">กำลังโหลดข้อมูล...</div>
+
+        <div class="product-selector">
+            <label for="adminProductType" style="font-weight: bold;">เลือก Product ที่ต้องการจัดการ:</label>
+            <select id="adminProductType" onchange="fetchAllData()" style="padding: 8px; border-radius: 6px;">
+                <option value="health" selected>Health (ประกันสุขภาพ)</option>
+                <option value="saving1">Life 1 (Saving 1)</option>
+                <option value="saving2">Life 2 (Saving 2)</option>
+                <option value="retirement">Life 3 (Retirement)</option>
+            </select>
+        </div>
+
+        <div class="tab-menu" id="tabMenu">
+            <button class="tab-button active" onclick="openTab(event, 'section1')">S1: Customer Replies</button>
+            <button class="tab-button" onclick="openTab(event, 'section2')">S2: Questions</button>
+            <button class="tab-button" onclick="openTab(event, 'section3')">S3: Objections</button>
+            <button class="tab-button" onclick="openTab(event, 'section4')">S4: Health Check (เฉพาะ Health)</button>
+            <button class="tab-button" onclick="openTab(event, 'section5')">S5: Scripts</button>
+            <button class="tab-button" onclick="openTab(event, 'section6')">S4 Follow-up</button>
+        </div>
+
+        <div id="tabContent">
+            <div id="section1" class="tab-content"><h2>S1: Customer Replies (customer_replies_s1)</h2><div id="table1"></div></div>
+            <div id="section2" class="tab-content" style="display:none;"><h2>S2: Questions (questions_s2)</h2><div id="table2"></div></div>
+            <div id="section3" class="tab-content" style="display:none;"><h2>S3: Objections (objections_s3)</h2><div id="table3"></div></div>
+            <div id="section4" class="tab-content" style="display:none;"><h2>S4: Health Check Questions (health_questions_s4)</h2><div id="table4"></div></div>
+            <div id="section5" class="tab-content" style="display:none;"><h2>S5: Scripts (scripts_s5)</h2><div id="table5"></div></div>
+            <div id="section6" class="tab-content" style="display:none;"><h2>S4 Follow-up Replies (s4_follow_up_replies)</h2><div id="table6"></div></div>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+            <h3>อัปโหลดไฟล์เสียงและอัปเดต URL (สำหรับแถวที่เลือก)</h3>
+            <p id="uploadStatus" class="status-bar"></p>
+            <input type="file" id="fileInput" accept="audio/*" style="margin-bottom: 10px;">
+            <p>กรุณาเลือกตาราง, คอลัมน์/คีย์หลัก และ ID ที่ต้องการอัปเดตก่อน</p>
+            <button onclick="uploadAndSetUrl()">อัปโหลดและอัปเดต</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // ⚠️ Config: กรุณาแทนที่ Key ของคุณ
+        const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
+        const supabaseKey = 'YOUR_SUPABASE_KEY_HERE';
+        window.supabase = createClient(supabaseUrl, supabaseKey);
+
+        const statusElement = document.getElementById('loadingStatus');
+
+        // Global state for upload
+        let selectedTable = '';
+        let selectedIndexCol = '';
+        let selectedIndexVal = '';
+        let selectedColumn = '';
+        
+        // --- Core Functions ---
+
+        const clearDisplay = () => {
+            document.getElementById('table1').innerHTML = '';
+            document.getElementById('table2').innerHTML = '';
+            document.getElementById('table3').innerHTML = '';
+            document.getElementById('table4').innerHTML = '';
+            document.getElementById('table5').innerHTML = '';
+            document.getElementById('table6').innerHTML = '';
+        };
+
+        const fetchAllData = async () => {
+            statusElement.textContent = 'กำลังโหลดข้อมูล...';
+            clearDisplay();
+            
+            // NEW: ดึง Product Tag ที่ถูกเลือกในหน้า Admin
+            const selectedProductTag = document.getElementById('adminProductType').value;
+            const FILTER_TAGS = [selectedProductTag]; 
+
+            try {
+                // --- ดึงข้อมูล Stage 1 (customer_replies_s1) ---
+                const { data: s1Data, error: s1Error } = await supabase
+                    .from('customer_replies_s1')
+                    .select('*')
+                    .overlaps('product_type', FILTER_TAGS) // <-- FILTER APPLIED
+                    .order('turn_index', { ascending: true });
+                if (s1Error) throw s1Error;
+                renderTable(s1Data, 'section1', 'customer_replies_s1', 'turn_index', ['turn_index', 'audio_url', 'is_finale', 'product_type']);
+                
+                // --- ดึงข้อมูล Stage 2 (questions_s2) ---
+                const { data: s2Data, error: s2Error } = await supabase
+                    .from('questions_s2')
+                    .select('*')
+                    .overlaps('product_type', FILTER_TAGS) // <-- FILTER APPLIED
+                    .order('q_index', { ascending: true });
+                if (s2Error) throw s2Error;
+                renderTable(s2Data, 'section2', 'questions_s2', 'q_index', ['q_index', 'audio_url', 'product_type']);
+
+                // --- ดึงข้อมูล Stage 3 (objections_s3) ---
+                const { data: s3Data, error: s3Error } = await supabase
+                    .from('objections_s3')
+                    .select('*')
+                    .overlaps('product_type', FILTER_TAGS) // <-- FILTER APPLIED
+                    .order('c_index', { ascending: true });
+                if (s3Error) throw s3Error;
+                renderTable(s3Data, 'section3', 'objections_s3', 'c_index', ['c_index', 'audio_url', 'product_type']);
+
+                // --- ดึงข้อมูล Stage 4 (health_questions_s4) ---
+                const { data: s4Data, error: s4Error } = await supabase
+                    .from('health_questions_s4')
+                    .select('*')
+                    .overlaps('product_type', FILTER_TAGS) // <-- FILTER APPLIED
+                    .order('h_index', { ascending: true });
+                if (s4Error) throw s4Error;
+                renderTable(s4Data, 'section4', 'health_questions_s4', 'h_index', ['h_index', 'question_text', 'yes_trigger_url', 'product_type']);
+
+                // --- ดึงข้อมูล S4 Follow-up Replies (s4_follow_up_replies) ---
+                const { data: s4frData, error: s4frError } = await supabase
+                    .from('s4_follow_up_replies')
+                    .select('*')
+                    .overlaps('product_type', FILTER_TAGS) // <-- FILTER APPLIED
+                    .order('r_index', { ascending: true });
+                if (s4frError) throw s4frError;
+                renderTable(s4frData, 'section6', 's4_follow_up_replies', 'r_index', ['r_index', 'follow_up_text', 'audio_url', 'product_type']);
+
+                // --- ดึงข้อมูล Stage 5 (scripts_s5) ---
+                const { data: s5Data, error: s5Error } = await supabase
+                    .from('scripts_s5')
+                    .select('*')
+                    .overlaps('product_type', FILTER_TAGS) // <-- FILTER APPLIED
+                    .order('a_index', { ascending: true });
+                if (s5Error) throw s5Error;
+                renderTable(s5Data, 'section5', 'scripts_s5', 'a_index', ['a_index', 'audio_url', 'product_type']);
+
+                statusElement.textContent = `✅ โหลดข้อมูล ${selectedProductTag} สำเร็จแล้ว`;
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                statusElement.className = 'error-text';
+                statusElement.textContent = `❌ ข้อผิดพลาดในการโหลดข้อมูล: ${err.message}`;
+            }
+        };
+
+        // --- Utility Functions (renderTable, selectRowForUpload, uploadAndSetUrl, openTab) ---
+        // (เนื่องจากฟังก์ชันเหล่านี้ยาวมากและไม่เกี่ยวข้องกับการกรอง Product Tag โดยตรง 
+        // กรุณาใช้ฟังก์ชันเดิมที่คุณมีอยู่)
+        
+        // *** หมายเหตุ: คุณต้องนำฟังก์ชัน renderTable, selectRowForUpload, openTab และ uploadAndSetUrl 
+        // มาใส่ไว้ในส่วนนี้ด้วย โดยที่ฟังก์ชันเหล่านี้จะใช้ตัวแปร Global: selectedTable, selectedIndexCol, selectedIndexVal, selectedColumn ***
+        
+        document.addEventListener('DOMContentLoaded', () => {
+             // ... (โค้ดฟังก์ชัน openTab เดิม) ...
+             fetchAllData();
+        });
+    </script>
+</body>
+</html>
