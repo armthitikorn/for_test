@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>E-Simulator Roleplay (Saving 1)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; padding: 20px; text-align: center; background-color: #f4f7f6; }
+        .container-box { max-width: 700px; margin: 0 auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); }
+        h1 { font-size: 32px; color: #d9534f; margin-bottom: 20px; }
+        h2 { margin-top: 25px; font-size: 24px; color: #337ab7; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        button { margin: 10px 5px; padding: 12px 24px; font-size: 18px; cursor: pointer; border-radius: 8px; border: none; transition: background-color 0.3s; }
+        .status-text { margin-top: 15px; font-weight: bold; font-size: 1.1em; }
+        .success-text { color: green; }
+        .error-text { color: red; }
+        .audio-player { width: 100%; max-width: 400px; margin: 15px auto; }
+        .section-content { text-align: left; padding: 10px; border: 1px dashed #ccc; border-radius: 8px; margin-top: 15px; }
+        .hide { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container-box">
+        <h1>E-Simulator Roleplay (Saving 1)</h1>
+        <div id="testSection" class="hide">
+            <h2>สถานะการทดสอบ</h2>
+            <p>เทิร์นรวม: <span id="currentTurnSpan">0</span>/<span id="maxTurnSpan">0</span> | Q: <span id="currentQSpan">0</span>/<span id="maxQSpan">0</span> | C: <span id="currentCSpan">0</span>/<span id="maxCSpan">0</span> | A: <span id="currentASpan">0</span>/<span id="maxASpan">0</span></p>
+
+            <div id="section1Div" class="hide">...</div>
+            <div id="section1_5Div" class="hide">...</div>
+            <div id="section2Div" class="hide">...</div>
+            <div id="section3Div" class="hide">...</div>
+            
+            <div id="section5Div" class="hide">
+                <h2>ส่วนที่ 5: การสรุปและนำเสนอ</h2>
+                <p id="s5ScriptElement" class="section-content">สคริปต์:</p>
+                <p id="s5StatusElement" class="status-text"></p>
+                <audio id="s5AudioPlayer" class="audio-player" controls></audio>
+                <button id="answerABtn">🎤 เริ่มบันทึก/หยุดบันทึก</button>
+                <div id="s5RecordingStatus" class="status-text error-text"></div>
+            </div>
+
+            <div id="finalSection" class="hide" style="margin-top: 30px;">...</div>
+            <div id="certificate" class="hide" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center;">...</div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // ⚠️ Config: กรุณาแทนที่ Key ของคุณ
+        const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
+        const supabaseKey = 'YOUR_SUPABASE_KEY_HERE';
+        window.supabase = createClient(supabaseUrl, supabaseKey);
+
+        // --- Multi-Product Configuration (NEW) ---
+        const DEFAULT_PRODUCT_TAG = 'saving2'; // <--- เปลี่ยนจาก 'saving1' เป็น 'saving2'
+        const CURRENT_PRODUCT_TAG = localStorage.getItem('roleplaySelectedProductTag') || DEFAULT_PRODUCT_TAG;
+        const FILTER_TAGS = [CURRENT_PRODUCT_TAG]; // แยก Product โดยเด็ดขาด
+
+        const NO_ANSWER_URL = "..."; 
+        let productDisplayName = '';
+
+        // Variables: ลบตัวแปร S4 ออก
+        let allRecordings = [], mediaRecorder = null, currentUserId = null;
+        let turn=0, qRound=0, cRound=0, aRound=0;
+        let maxTurns, maxQ, maxC, maxA;
+        let globalConfig={}, globalS1Files=[], globalS2Files=[], globalS3Files=[], globalS5Steps=[]; // ไม่มี S4
+        let audioCache={}, selectedRandomFiles=[], lastCustomerAudioUrl='N/A';
+        let selectedS2Files = [], selectedS3Files = [];
+        // ... (ส่วน Variables อื่นๆ ที่เหลือ) ...
+
+
+        const fetchInitialData = async function() {
+            try {
+                // 1. ดึง Difficulty Config - ไม่มี S4
+                const { data: cData, error: cError } = await window.supabase
+                    .from('difficulty_config')
+                    .select('*');
+                if (cError) throw cError;
+                cData.forEach(c => globalConfig[c.difficulty_level] = { S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S5: c.max_s5 });
+
+                // 2. ดึง S1 (customer_replies_s1)
+                const { data: s1Data, error: s1Error } = await window.supabase
+                    .from('customer_replies_s1')
+                    .select('turn_index, audio_url, is_finale')
+                    .overlaps('product_type', FILTER_TAGS) 
+                    .order('turn_index', { ascending: true });
+                if (s1Error) throw s1Error;
+                globalS1Files = s1Data;
+
+                // 3. ดึง S2 (questions_s2)
+                const { data: s2Data, error: s2Error } = await window.supabase
+                    .from('questions_s2')
+                    .select('q_index, audio_url')
+                    .overlaps('product_type', FILTER_TAGS) 
+                    .order('q_index', { ascending: true });
+                if (s2Error) throw s2Error;
+                globalS2Files = s2Data;
+
+                // 4. ดึง S3 (objections_s3)
+                const { data: s3Data, error: s3Error } = await window.supabase
+                    .from('objections_s3')
+                    .select('c_index, audio_url')
+                    .overlaps('product_type', FILTER_TAGS) 
+                    .order('c_index', { ascending: true });
+                if (s3Error) throw s3Error;
+                globalS3Files = s3Data;
+                
+                // 5. ดึง S5 (scripts_s5)
+                const { data: s5Data, error: s5Error } = await window.supabase
+                    .from('scripts_s5')
+                    .select('a_index, audio_url')
+                    .overlaps('product_type', FILTER_TAGS) 
+                    .order('a_index', { ascending: true });
+                if (s5Error) throw s5Error;
+                globalS5Steps = s5Data;
+
+                return true;
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                alert("ไม่สามารถดึงข้อมูลเริ่มต้นได้: " + error.message);
+                return false;
+            }
+        };
+
+        const initializeUserAndDOM = async function() {
+            // ... (โค้ดส่วนอื่น ๆ ที่คุณมีอยู่) ...
+
+            // ตั้งค่าชื่อ Product บน UI (NEW)
+            productDisplayName = (CURRENT_PRODUCT_TAG === 'health') ? 'ประกันสุขภาพ' :
+                                (CURRENT_PRODUCT_TAG === 'saving1') ? 'ประกันสะสมทรัพย์ 1' :
+                                (CURRENT_PRODUCT_TAG === 'saving2') ? 'ประกันสะสมทรัพย์ 2' :
+                                (CURRENT_PRODUCT_TAG === 'retirement') ? 'ประกันเกษียณ' : 'Simulator';
+                                
+            document.querySelector('h1').textContent = `E-Simulator Roleplay (${productDisplayName})`;
+            
+            // ... (โค้ดส่วนอื่นๆ ที่เหลือ) ...
+        };
+
+        document.addEventListener('DOMContentLoaded', initializeUserAndDOM);
+        
+        // ... (โค้ดฟังก์ชันอื่นๆ: init, toggleRecording, prepareTurnFiles, nextTurn, initSection2, etc.) ...
+    </script>
+</body>
+</html>
