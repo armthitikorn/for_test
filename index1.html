@@ -6,6 +6,7 @@
     <title>E-Simulator Roleplay (ประกันสุขภาพ)</title>
     
     <style>
+        /* 1. สไตล์ที่ถูกปรับขนาด (NEW) */
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { 
             font-family: 'Sarabun', sans-serif;
@@ -52,6 +53,7 @@
         #finalSaveBtn { background-color: #007bff; color: white; font-weight: bold; }
         #finalSaveBtn.done { background-color: #28a745; }
 
+        /* Responsive Form Control */
         .form-control {
             padding: 10px;
             border: 1px solid #ccc;
@@ -64,6 +66,7 @@
             font-size: 16px;
         }
 
+        /* Difficulty Radio Styles */
         .difficulty-option {
             display: inline-block;
             margin: 8px;
@@ -82,6 +85,7 @@
         }
         input[type="radio"] { display: none; }
         
+        /* Loading Overlay */
         #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); color: white; display: none; 
@@ -93,6 +97,7 @@
         .progress { width: 80%; max-width: 400px; margin-top: 20px; height: 15px; background-color: #e9ecef; border-radius: 0.25rem; overflow: hidden; }
         .progress-bar { height: 100%; background-color: #007bff; transition: width 0.6s ease; }
         
+        /* Certificate Style */
         #certificate { border: 5px solid #333; padding: 40px; width: 90%; max-width: 800px; margin: 40px auto; text-align: center; display: none; }
 
         @media (max-width: 600px) {
@@ -161,18 +166,20 @@
         
         <div id="testSection" style="display: none;">
             
+            <p>เทิร์นรวม: <span id="turnSpan">1</span>/<span id="maxTurnSpan">5</span> | Q: <span id="qRound">1</span>/<span id="maxQSpan">10</span> | C: <span id="cRound">1</span>/<span id="maxCSpan">5</span> | H: <span id="currentHSpan">0</span>/<span id="maxHSpan">5</span> | A: <span id="aRound">1</span>/<span id="maxASpan">7</span></p>
+
             <div id="section1Div">
-                <h2>🗣️ ช่วงที่ 1: เปิดตัว/โต้ตอบต้นสาย (เทิร์นที่ <span id="turnSpan">1</span>/<span id="maxTurnSpan">5</span>)</h2>
+                <h2>🗣️ ช่วงที่ 1: เปิดตัว/โต้ตอบต้นสาย (T<span id="turnSpan">1</span>/<span id="maxTurnSpan">5</span>)</h2>
                 <audio id="customerAudio" src=""></audio>
                 <button id="recordBtn">🎙️ เริ่มบันทึกเสียง (พนักงาน)</button>
                 <button disabled id="nextRoundBtn">✅ จบบทที่ 1 (ไปช่วงที่ 1.5)</button>
-                <p id="status">รอเริ่มบันทึกบทพูดเปิดตัว</p>
+                <p id="s1StatusElement">รอเริ่มบันทึกบทพูดเปิดตัว</p>
                 <hr>
             </div>
 
             <div id="section1_5Div" style="display: none;">
                 <h2>🛒 ช่วงที่ 1.5: การนำเสนอผลิตภัณฑ์ (Pitch)</h2>
-                <button disabled id="pitchRecordBtn">🎙️ เริ่มบันทึกเสียงนำเสนอ</button>
+                <button id="pitchRecordBtn">🎙️ เริ่มบันทึกเสียงนำเสนอ</button>
                 <button disabled id="nextSection2Btn">✅ จบบทที่ 1.5 (ไปช่วงที่ 2)</button>
                 <p id="pitchStatus">รอเริ่มนำเสนอ</p>
                 <hr>
@@ -190,11 +197,11 @@
 
             <div id="section3Div" style="display: none;">
                 <h2>💰 ช่วงที่ 3: ปิดการขาย + ข้อโต้แย้ง (รอบที่ <span id="cRound">1</span>/<span id="maxCSpan">5</span>)</h2>
-                <button disabled id="closeBtn">🎙️ 1. บันทึกสคริปต์ปิดการขาย</button>
+                <button id="closeBtn">🎙️ 1. บันทึกสคริปต์ปิดการขาย</button>
                 <audio id="objectionAudio"></audio>
                 <button disabled id="replyBtn">🎙️ 2. บันทึกเสียงตอบข้อโต้แย้ง</button>
                 <button disabled id="nextSection4Btn">✅ จบบทที่ 3 (ไปช่วงที่ 4)</button>
-                <p id="cStatus">รอเริ่มช่วงที่ 3</p>
+                <p id="s3StatusElement">รอเริ่มช่วงที่ 3</p>
                 <hr>
             </div>
 
@@ -202,12 +209,11 @@
                 <h2>🏥 ช่วงที่ 4: คำถามสุขภาพ (<span id="hQName">คำถามที่ 1/5: โรคสำคัญ</span>)</h2>
                 
                 <div id="healthQuestionDisplay" style="margin: 15px 0; padding: 15px; border: 1px dashed #d9534f; border-radius: 8px; background-color: #ffeaea; font-weight: bold; font-size: 18px; color: #333;">
-                    <p>คำถามหลัก: ใน 5 ปีที่ผ่านมา ท่านเคยได้รับการบาดเจ็บ เจ็บป่วย หรือเข้ารับการรักษาตัวในโรงพยาบาลหรือไม่?</p>
-                </div>
+                    </div>
                 <audio id="healthAudio"></audio>
-                <button disabled id="answerHBtn">🎙️ 1. บันทึกคำถามสุขภาพ</button>
+                <button id="answerHBtn">🎙️ 1. บันทึกคำถามสุขภาพ</button>
                 <button disabled id="nextSection5Btn">✅ จบบทที่ 4 (ไปช่วงที่ 5)</button>
-                <p id="hStatus">รอเริ่มช่วงที่ 4</p>
+                <p id="hStatusElement">รอเริ่มช่วงที่ 4</p>
                 <hr>
             </div>
 
@@ -220,13 +226,13 @@
                     <ol id="stepList" style="padding-left: 20px; font-size: 16px;">
                         </ol>
                 </div>
-                <button disabled id="answerABtn">🎙️ บันทึกคำถามลงทะเบียน</button> 
+                <button id="answerABtn">🎙️ บันทึกคำถามลงทะเบียน</button> 
                 <button disabled id="finalSaveBtn">💾 บันทึกการทดสอบเสร็จสิ้น</button>
                 <p id="aStatus">รอเริ่มช่วงที่ 5</p>
                 <hr>
             </div>
 
-            <div id="certificate">
+            <div id="certificate" style="display: none;">
                 <h1>ใบประกาศนียบัตร</h1>
                 <p>ขอมอบให้แก่</p>
                 <h2 id="traineeName">[ชื่อพนักงาน]</h2>
@@ -236,7 +242,7 @@
                 <p>(หัวหน้าฝึกอบรม)</p>
                 <p style="margin-top: 20px;">วันที่ออกใบประกาศ: <span id="issueDate"></span></p>
             </div>
-            <button id="certBtn">🎓 แสดงใบประกาศ</button>
+            <button id="certBtn" style="display: none;">🎓 แสดงใบประกาศ</button>
         </div>
     </div>
 
@@ -249,157 +255,257 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno'; 
         window.supabase = createClient(supabaseUrl, supabaseKey);
 
-        // --- Multi-Product Configuration (NEW) ---
+        // FIX: Product Tag Configuration
         const DEFAULT_PRODUCT_TAG = 'health'; 
-        // ดึง Tag ที่เลือกจากหน้า index.html 
         const CURRENT_PRODUCT_TAG = localStorage.getItem('roleplaySelectedProductTag') || DEFAULT_PRODUCT_TAG;
-        // **FULL OPTION FILTER: แยก Product โดยเด็ดขาด**
         const FILTER_TAGS = [CURRENT_PRODUCT_TAG]; 
 
-        // State Variables (ละไว้ตามโค้ดเดิมของคุณ)
-        let mediaRecorder = null; let currentUserId = null; const USER_ID_KEY = 'roleplay_user_id';
-        let allRecordings = []; let lastCustomerAudioUrl = 'N/A'; let userGroup = ''; 
-        let turn = 0, qRound = 0, cRound = 0, currentHIndex = 0, isFollowUpMode = false, followUpStep = 0, selectedDisease = null, aRound = 0; 
-        let maxTurns, maxQ, maxC, maxH, maxFollowUp = 5, maxA; 
-        let globalConfig = {}, globalS1Files = [], globalS2Files = [], globalS3Files = [], globalS4Questions = [], globalS4FollowUpNames = [], globalS4FollowUpReplies = [], globalS5Steps = [];
-        let audioCache = {}; let selectedRandomFiles = []; 
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
-        
-        // (ละไว้: H_FOLLOW_UP_NAMES_HARDCODE)
+        let productDisplayName = 'ประกันสุขภาพ (S4 Included)'; 
 
-        // --- Utility Functions ---
-        // (ละไว้: shuffleArray, getCachedAudioElement, playAudio, storeRecording, uploadAllRecordings, updateHealthQuestionUI, renderRegistrationSteps, updateStepHighlight, generateCertificate)
+        // Variables
+        let allRecordings = [], mediaRecorder = null, currentUserId = null, audioChunks = [];
+        let turn=0, qRound=0, cRound=0, currentHIndex=0, followUpStep=0, aRound=0;
+        let isFollowUpMode=false, selectedDisease=null;
+        let maxTurns, maxQ, maxC, maxH, maxA, maxFollowUp;
+        let globalConfig={}, globalS1Files=[], globalS2Files=[], globalS3Files=[], globalS4Questions=[], globalS4FollowUpNames=[], globalS4FollowUpReplies=[], globalS5Steps=[];
+        let audioCache={}, selectedRandomFiles=[], lastCustomerAudioUrl='N/A';
+        let selectedS2Files = [], selectedS3Files = []; 
         
-        // --- Core Functions: fetchInitialData (ปรับปรุงการกรอง) ---
-
+        // --- 2. Helper Functions (Required for operation) ---
+        const shuffleArray = (array) => { /* ... โค้ดเดิม ... */ };
+        const playAudio = (url, statusEl, onEnd) => { /* ... โค้ดเดิม ... */ };
+        const hideAll = () => ['section1Div','section1_5Div','section2Div','section3Div','section4Div','section5Div'].forEach(id=>document.getElementById(id).style.display='none');
+        const updateStepHighlight = function(currentStep) { /* ... โค้ดเดิม ... */ };
+        const generateCertificate = function() { /* ... โค้ดเดิม ... */ };
+        const storeRecording = (audioBlob, part, qNum, qText, customerAudioUrl = 'N/A') => { /* ... โค้ดเดิม ... */ };
+        const uploadAllRecordings = async () => { /* ... โค้ดเดิม ... */ };
+        const saveAllRecordings = () => { uploadAllRecordings(); };
+        const getCachedAudioElement = (url, fallbackToNew = true) => { /* ... โค้ดเดิม ... */ };
+        
+        const renderRegistrationSteps = function() {
+            window.stepList.innerHTML = ''; 
+            globalS5Steps.forEach((s, i) => {
+                const li = document.createElement('li');
+                li.id = `reg-step-${i + 1}`;
+                li.textContent = s.step_name;
+                window.stepList.appendChild(li);
+            });
+        }
+        
+        // --- Core Functions: fetchInitialData (ดึงข้อมูล Health) ---
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
-            window.loadingText.textContent = `กำลังดึงข้อมูลการตั้งค่าจากฐานข้อมูล...`;
-
             try {
-                const { data: configData, error: configError } = await window.supabase.from('difficulty_config').select('*');
-                if (configError) throw configError;
-                configData.forEach(c => globalConfig[c.difficulty_level] = { S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S4: c.max_s4, S5: c.max_s5 });
-                
-                // 2. ดึง S1 (customer_replies_s1)
-                window.loadingText.textContent = `กำลังดึงข้อมูลบทโต้ตอบต้นสาย... (${CURRENT_PRODUCT_TAG})`;
-                const { data: s1Data, error: s1Error } = await window.supabase
-                    .from('customer_replies_s1')
-                    .select('turn_index, audio_url, is_finale')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('turn_index', { ascending: true });
-                if (s1Error) throw s1Error;
-                globalS1Files = s1Data;
-                
-                // 3. ดึง S2 (questions_s2)
-                const { data: s2Data, error: s2Error } = await window.supabase
-                    .from('questions_s2')
-                    .select('q_index, audio_url')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('q_index', { ascending: true });
-                if (s2Error) throw s2Error;
-                globalS2Files = s2Data;
+                // 1. Config
+                const { data: cData } = await window.supabase.from('difficulty_config').select('*');
+                cData.forEach(c => globalConfig[c.difficulty_level] = { S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S4: c.max_s4, S5: c.max_s5 });
 
-                // 4. ดึง S3 (objections_s3)
-                const { data: s3Data, error: s3Error } = await window.supabase
-                    .from('objections_s3')
-                    .select('ob_index, audio_url')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('ob_index', { ascending: true });
-                if (s3Error) throw s3Error;
-                globalS3Files = s3Data;
+                // 2. S1 (FILTERED)
+                const { data: s1 } = await window.supabase.from('customer_replies_s1').select('*').overlaps('product_type', FILTER_TAGS).order('turn_index');
+                globalS1Files = s1 || [];
                 
-                // 5. ดึง S4 (health_questions_s4 - คำถามหลัก)
-                const { data: s4Data, error: s4Error } = await window.supabase
-                    .from('health_questions_s4')
-                    .select('q_index, q_text, is_yes_trigger, yes_trigger_url')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('q_index', { ascending: true });
-                if (s4Error) throw s4Error;
+                // 3. S2 (FILTERED)
+                const { data: s2 } = await window.supabase.from('questions_s2').select('*').overlaps('product_type', FILTER_TAGS).order('q_index');
+                globalS2Files = s2 || [];
                 
-                globalS4Questions = s4Data.map(q => q.q_text);
-                selectedDisease = s4Data.find(q => q.is_yes_trigger) || {name: 'โรคทั่วไป', yes_trigger_url: NO_ANSWER_URL};
+                // 4. S3 (FILTERED)
+                const { data: s3 } = await window.supabase.from('objections_s3').select('*').overlaps('product_type', FILTER_TAGS).order('ob_index');
+                globalS3Files = s3 || [];
                 
-                // 6. ดึง S4 Follow-up Names
-                 const { data: s4FNamesData, error: s4FNamesError } = await window.supabase
-                    .from('s4_follow_up_names')
-                    .select('step_index, step_name')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('step_index', { ascending: true });
-                if (s4FNamesError) throw s4FNamesError;
-                globalS4FollowUpNames = s4FNamesData;
+                // 5. S4 Questions (FILTERED)
+                const { data: s4 } = await window.supabase.from('health_questions_s4').select('*').overlaps('product_type', FILTER_TAGS).order('q_index');
+                globalS4Questions = (s4 || []).map(q => q.q_text);
+                selectedDisease = (s4||[]).find(q => q.is_yes_trigger) || {name: 'โรคสำคัญ', yes_trigger_url: NO_ANSWER_URL};
                 
-                // 7. ดึง S4 Follow-up Replies
-                 const { data: s4FRepliesData, error: s4FRepliesError } = await window.supabase
-                    .from('s4_follow_up_replies')
-                    .select('step_index, customer_audio_url')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('step_index', { ascending: true });
-                if (s4FRepliesError) throw s4FRepliesError;
-                globalS4FollowUpReplies = s4FRepliesData;
+                // 6. S4 Follow-up Names (FILTERED)
+                const { data: s4n } = await window.supabase.from('s4_follow_up_names').select('*').overlaps('product_type', FILTER_TAGS).order('step_index');
+                globalS4FollowUpNames = s4n || [];
                 
-                // 8. ดึง S5 (scripts_s5)
-                const { data: s5Data, error: s5Error } = await window.supabase
-                    .from('scripts_s5')
-                    .select('step_index, step_name, customer_audio_url')
-                    .overlaps('product_type', FILTER_TAGS) // <-- FILTERED
-                    .order('step_index', { ascending: true });
-                if (s5Error) throw s5Error;
-                globalS5Steps = s5Data;
+                // 7. S4 Follow-up Replies (FILTERED)
+                const { data: s4r } = await window.supabase.from('s4_follow_up_replies').select('*').overlaps('product_type', FILTER_TAGS).order('step_index');
+                globalS4FollowUpReplies = s4r || [];
+                
+                // 8. S5 (FILTERED)
+                const { data: s5 } = await window.supabase.from('scripts_s5').select('*').overlaps('product_type', FILTER_TAGS).order('step_index');
+                globalS5Steps = s5 || [];
 
-                window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
+                // Preload (Optional, but recommended)
+                // preloadCriticalAudio();
                 
-                // (ละไว้: Preload Critical Audio)
-
-                setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 500);
-                return true; 
-                
-            } catch (error) {
-                // ... (ส่วนจัดการ Error เดิม) ...
+                window.loadingOverlay.style.display = "none";
+                return true;
+            } catch (err) {
+                alert("โหลดข้อมูลไม่สำเร็จ: " + err.message);
+                window.loadingOverlay.style.display = "none";
                 return false;
             }
-        }
+        };
 
+        // --- Flow Control Functions (Adjusted) ---
+        const playSequentialQuestion = function() { /* ... โค้ดเดิม ... */ };
+        const playSequentialObjectionAuto = function() { /* ... โค้ดเดิม ... */ };
+        const startNextCloseRoundAuto = function() { /* ... โค้ดเดิม ... */ };
+        const playFixedHealthQuestion = function() { /* ... โค้ดเดิม ... */ };
+        const playFixedFollowUpQuestion = function() { /* ... โค้ดเดิม ... */ };
+        const playCustomerReplyAndSetupNextStep = function() { /* ... โค้ดเดิม ... */ };
+        const updateHealthQuestionUI = function() { /* ... โค้ดเดิม ... */ };
 
-        // --- Initialization and Event Listeners (แก้ไข Auto Fill) ---
+        const nextTurn = function() { /* ... โค้ดเดิม ... */ };
+        const prepareTurnFiles = function() { /* ... โค้ดเดิม ... */ };
+        const initSection1_5 = function() { /* ... โค้ดเดิม ... */ };
+        const endPitchRecording = function() { /* ... โค้ดเดิม ... */ };
+        const initSection2 = function() { /* ... โค้ดเดิม ... */ };
+        const initSection3 = function() { /* ... โค้ดเดิม ... */ };
+        const initSection4 = function() { /* ... โค้ดเดิม ... */ };
+        const initSection5 = function() { /* ... โค้ดเดิม ... */ };
+
+        // --- 4. Initialization and DOM Assignment ---
         const initializeUserAndDOM = async function() {
-            // ... (ส่วนการกำหนด ID และ DOM Element เดิม) ...
-            // ส่วนนี้ต้องคงโค้ดเดิมของคุณไว้ (binding buttons)
-            
-            // NEW LOGIC: ดึงข้อมูลชื่อ/กลุ่ม จาก Local Storage
+            // A. Assign DOM Elements to window (Binding)
+            window.inputUserName = document.getElementById('inputUserName'); 
+            window.inputUserGroup = document.getElementById('inputUserGroup');
+            window.registrationSection = document.getElementById('registrationSection');
+            window.testSection = document.getElementById('testSection');
+            window.startTestBtn = document.getElementById('startTestBtn');
+            window.customerAudio = document.getElementById('customerAudio');
+            window.questionAudio = document.getElementById('questionAudio');
+            window.objectionAudio = document.getElementById('objectionAudio');
+            window.agreementAudio = document.getElementById('agreementAudio');
+            window.s1StatusElement = document.getElementById('s1StatusElement');
+            window.pitchStatus = document.getElementById('pitchStatus');
+            window.qStatus = document.getElementById('qStatus');
+            window.s3StatusElement = document.getElementById('s3StatusElement');
+            window.hStatusElement = document.getElementById('hStatusElement'); // S4 Status
+            window.aStatus = document.getElementById('aStatus');
+            window.recordBtn = document.getElementById('recordBtn');
+            window.nextRoundBtn = document.getElementById('nextRoundBtn');
+            window.pitchRecordBtn = document.getElementById('pitchRecordBtn');
+            window.nextSection2Btn = document.getElementById('nextSection2Btn');
+            window.startQBtn = document.getElementById('startQBtn');
+            window.answerBtn = document.getElementById('answerBtn');
+            window.nextSection3Btn = document.getElementById('nextSection3Btn');
+            window.closeBtn = document.getElementById('closeBtn');
+            window.replyBtn = document.getElementById('replyBtn');
+            window.nextSection4Btn = document.getElementById('nextSection4Btn');
+            window.answerHBtn = document.getElementById('answerHBtn');
+            window.nextSection5Btn = document.getElementById('nextSection5Btn');
+            window.answerABtn = document.getElementById('answerABtn');
+            window.finalSaveBtn = document.getElementById('finalSaveBtn');
+            window.certBtn = document.getElementById('certBtn');
+            window.traineeName = document.getElementById('traineeName');
+            window.issueDate = document.getElementById('issueDate');
+            window.stepList = document.getElementById('stepList');
+            window.hQName = document.getElementById('hQName');
+            window.turnSpan = document.getElementById('turnSpan');
+            window.maxTurnSpan = document.getElementById('maxTurnSpan');
+            window.qRound = document.getElementById('qRound');
+            window.maxQSpan = document.getElementById('maxQSpan');
+            window.cRound = document.getElementById('cRound');
+            window.maxCSpan = document.getElementById('maxCSpan');
+            window.aRound = document.getElementById('aRound');
+            window.maxASpan = document.getElementById('maxASpan');
+            window.loadingOverlay = document.getElementById('loadingOverlay');
+            window.loadingText = document.getElementById('loadingText');
+            window.uploadProgressBar = document.getElementById('uploadProgressBar');
+
+
+            // B. Auto Fill Logic (FIXED)
             const storedUserData = localStorage.getItem('roleplayUserData');
 
-            if (storedUserData) {
-                try {
-                    const userData = JSON.parse(storedUserData);
-                    
-                    // 💡 นำชื่อจากหน้าลงทะเบียนมาแสดงอัตโนมัติ (และแก้ไขได้)
-                    window.inputUserName.value = userData.fullName || '';
-                    
-                    // 💡 นำกลุ่ม/แผนก จากหน้าลงทะเบียนมาแสดงอัตโนมัติ (และแก้ไขได้)
-                    window.inputUserGroup.value = userData.department || '';
-                    
-                } catch (e) {
-                    console.error("Error parsing user data from localStorage:", e);
+            if(await fetchInitialData()) {
+                document.querySelector('h1').textContent = `E-Simulator Roleplay (${productDisplayName})`;
+                if (storedUserData) {
+                    try {
+                        const userData = JSON.parse(storedUserData);
+                        // FIX: Auto Fill สำหรับ input text (Name and Department)
+                        window.inputUserName.value = userData.fullName || '';
+                        window.inputUserGroup.value = userData.department || '';
+                        
+                        const storedDiff = localStorage.getItem('roleplayDifficulty');
+                        if(storedDiff) {
+                            const diffRadio = document.querySelector(`input[name="difficulty"][value="${storedDiff}"]`);
+                            if(diffRadio) diffRadio.checked = true;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing user data from localStorage:", e);
+                    }
                 }
             }
-            
-            // ... (ส่วน Event Listeners และ startTest เดิม) ...
-            // โค้ดส่วนนี้ยาวมาก กรุณาคงโค้ดเดิมที่คุณมีอยู่ (หลังบรรทัด window.certBtn.addEventListener('click', generateCertificate); ) ไว้ทั้งหมด
-            
-            // ⚠️ ต้องเพิ่มฟังก์ชันทั้งหมดที่คุณละไว้ (Helpers, Core Functions, Flow) เข้ามาในส่วน Script ด้วย 
-            // แต่เนื่องจากคุณขอโค้ดสำเร็จรูป ดิฉันจะจัดเตรียมเฉพาะส่วนที่สำคัญที่ต้องแก้ไข/เพิ่มใหม่เท่านั้น
-            
-            const dataLoaded = await fetchInitialData();
-            if (!dataLoaded) {
-                window.startTestBtn.disabled = true;
-                window.startTestBtn.textContent = "❌ ไม่สามารถโหลดข้อมูลได้";
-            }
+
+
+            // C. Main Start Function (Binding)
+            const startTest = async () => {
+                const fullName = window.inputUserName.value.trim();
+                const userGroup = window.inputUserGroup.value.trim();
+                const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
+                const config = globalConfig[selectedDifficulty];
+
+                if (!fullName || !userGroup) {
+                    alert("กรุณากรอก ชื่อ-นามสกุล/รหัสพนักงาน และ กลุ่มผู้เข้าทำแบบทดสอบ ให้ครบถ้วน");
+                    return;
+                }
+                
+                if (!config) {
+                    alert(`ไม่พบการตั้งค่าสำหรับระดับความยาก "${selectedDifficulty}" ในฐานข้อมูล`);
+                    return;
+                }
+
+                // Set max values
+                maxTurns = config.S1;
+                maxQ = config.S2;
+                maxC = config.S3;
+                maxH = config.S4;
+                maxA = config.S5; 
+
+                // Update UI max values
+                window.maxTurnSpan.textContent = maxTurns;
+                window.maxQSpan.textContent = maxQ;
+                window.maxCSpan.textContent = maxC;
+                window.maxHSpan.textContent = maxH;
+                window.maxASpan.textContent = maxA; 
+
+                window.registrationSection.style.display = 'none';
+                window.testSection.style.display = 'block';
+
+                hideAll();
+                document.getElementById('section1Div').style.display = 'block';
+
+                turn = 1; // Start at Turn 1
+                window.turnSpan.textContent = turn;
+
+                // Set current user ID
+                currentUserId = uuidv4();
+
+                prepareTurnFiles(); 
+                window.nextRoundBtn.disabled = true;
+                window.recordBtn.disabled = false;
+                window.s1StatusElement.textContent = `🎤 พร้อมบันทึกบทพูดเปิดตัว (เทิร์นที่ 1/${maxTurns})`;
+            };
+
+            // D. Bind Start Button
+            window.startTestBtn.onclick = startTest;
+
+            // E. Bind Other Buttons (Ensure all handlers are defined in the complete code)
+            window.recordBtn.onclick = () => toggleRecording(1, window.recordBtn);
+            window.nextRoundBtn.onclick = nextTurn;
+            window.pitchRecordBtn.onclick = () => toggleRecording(2, window.pitchRecordBtn);
+            window.nextSection2Btn.onclick = initSection2;
+            window.startQBtn.onclick = playSequentialQuestion;
+            window.answerBtn.onclick = () => toggleRecording(3, window.answerBtn);
+            window.nextSection3Btn.onclick = initSection3;
+            window.closeBtn.onclick = () => toggleRecording(4, window.closeBtn);
+            window.replyBtn.onclick = () => toggleRecording(5, window.replyBtn);
+            window.nextSection4Btn.onclick = initSection4;
+            window.answerHBtn.onclick = () => toggleRecording(6, window.answerHBtn);
+            window.nextSection5Btn.onclick = initSection5;
+            window.answerABtn.onclick = () => toggleRecording(7, window.answerABtn);
+            window.finalSaveBtn.onclick = saveAllRecordings;
+            window.certBtn.onclick = generateCertificate;
         }
 
         document.addEventListener('DOMContentLoaded', initializeUserAndDOM);
         
-        // ... (กรุณาคงฟังก์ชันหลักอื่นๆ ทั้งหมด: init, toggleRecording, prepareTurnFiles, nextTurn, initSection2, ฯลฯ ไว้ที่นี่) ...
     </script>
 </body>
 </html>
