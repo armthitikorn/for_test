@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Recorder</title>
+<style>
+  body { font-family: Arial; text-align: center; margin-top: 50px; }
+  button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+  audio { margin-top: 20px; display: block; }
+</style>
+</head>
+<body>
+<h1>บันทึกเสียงบน iPhone</h1>
+<button id="startBtn">เริ่มบันทึก</button>
+<button id="stopBtn" disabled>หยุดบันทึก</button>
+<audio id="audioPlayback" controls></audio>
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+document.getElementById('startBtn').addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            document.getElementById('audioPlayback').src = audioUrl;
+
+            // ✅ ถ้าต้องการอัปโหลดไป GitHub หรือ Server:
+            // ใช้ fetch() หรือ FormData ส่งไฟล์ audioBlob ไปยัง API
+        };
+
+        mediaRecorder.start();
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+    } catch (err) {
+        alert('ไม่สามารถเข้าถึงไมโครโฟน: ' + err);
+    }
+});
+
+document.getElementById('stopBtn').addEventListener('click', () => {
+    mediaRecorder.stop();
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+});
+</script>
+</body>
+</html>
