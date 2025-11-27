@@ -274,10 +274,6 @@
         
         // --- 2. Helper Functions (Required for operation) ---
         
-        // ******************************************************
-        // START: โค้ดที่เพิ่มเข้ามาเพื่อการทำงานเต็มรูปแบบ (Full Option Code)
-        // ******************************************************
-
         const shuffleArray = (array) => {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -288,14 +284,14 @@
 
         const playAudio = (url, statusEl, onEnd) => {
             statusEl.textContent = "🎧 ลูกค้ากำลังพูด...";
-            const audio = window.customerAudio.src === url ? window.customerAudio : document.getElementById('customerAudio');
             
             // ใช้ Audio Element ที่เหมาะสมตาม Context
-            if (statusEl === window.qStatus) audio.id = 'questionAudio';
-            else if (statusEl === window.s3StatusElement) audio.id = 'objectionAudio';
-            else if (statusEl === window.aStatus) audio.id = 'agreementAudio';
-            else if (statusEl === window.hStatusElement) audio.id = 'healthAudio';
-            else audio.id = 'customerAudio';
+            let audio;
+            if (statusEl === window.qStatus) audio = window.questionAudio;
+            else if (statusEl === window.s3StatusElement) audio = window.objectionAudio;
+            else if (statusEl === window.aStatus) audio = window.agreementAudio;
+            else if (statusEl === window.hStatusElement) audio = window.healthAudio;
+            else audio = window.customerAudio;
 
             audio.src = url;
             lastCustomerAudioUrl = url;
@@ -306,7 +302,7 @@
             };
             audio.play().catch(e => {
                 console.error("Audio Playback Error:", e);
-                alert("ไม่สามารถเล่นไฟล์เสียงอัตโนมัติได้ กรุณากด OK และดำเนินการต่อ");
+                alert("ไม่สามารถเล่นไฟล์เสียงอัตโนมัติได้ (Audio Playback Error) กรุณากด OK และดำเนินการต่อ");
                 statusEl.textContent = "⚠️ ไม่สามารถเล่นเสียงอัตโนมัติได้ (ถึงตาพนักงาน)";
                 if (onEnd) onEnd();
             });
@@ -498,14 +494,8 @@
                     // Handle Next Flow based on Part
                     switch (part) {
                         case 1: // S1 Turn recording
-                            button.disabled = false; // Re-enable for next turn
-                            if (turn < maxTurns) {
-                                nextTurn(); // Play next customer reply
-                            } else {
-                                button.disabled = true;
-                                window.nextRoundBtn.disabled = false; // Enable 'Go to S1.5'
-                                if(currentStatusEl) currentStatusEl.textContent = "✅ จบบทที่ 1 แล้ว";
-                            }
+                            button.disabled = false; // Re-enable button for nextTurn (disabled by nextTurn if it's not the last turn)
+                            nextTurn(); // *** เรียก nextTurn เสมอ เพื่อให้ไปเล่นเสียงลูกค้า ***
                             break;
                         case 2: // S1.5 Pitch recording
                             button.disabled = true;
@@ -599,30 +589,34 @@
             window.recordBtn.disabled = false;
         }
 
+        // *** ฟังก์ชัน nextTurn ที่ถูกแก้ไขเพื่อจัดการเทิร์นสุดท้ายอย่างถูกต้อง ***
         const nextTurn = function() {
-            window.recordBtn.disabled = true;
+            window.recordBtn.disabled = true; // ปิดปุ่มบันทึกก่อนเสมอ
             window.nextRoundBtn.disabled = true;
             
-            const currentTurnFile = selectedRandomFiles[turn - 1];
+            // ใช้ turn - 1 เพื่ออ้างอิงถึงข้อมูลเทิร์นปัจจุบันที่กำลังจะเล่นเสียงลูกค้า
+            const currentTurnFile = selectedRandomFiles[turn - 1]; 
             
             if (currentTurnFile) {
-                playAudio(currentTurnFile.customer_audio_url, window.s1StatusElement, () => {
-                    // After customer audio ends
+                // *** ใช้ currentTurnFile.audio_url ตามการตรวจสอบในตาราง Supabase ***
+                playAudio(currentTurnFile.audio_url, window.s1StatusElement, () => {
+                    // *** หลังเสียงลูกค้าเล่นจบ ***
                     if (turn < maxTurns) {
+                        // 1. เทิร์นปกติ (ไม่ใช่เทิร์นสุดท้าย): เตรียมพร้อมสำหรับเทิร์นถัดไป
                         turn++;
                         window.turnSpan.textContent = turn;
                         window.s1StatusElement.textContent = `🎤 พร้อมบันทึกคำตอบ (เทิร์นที่ ${turn}/${maxTurns})`;
-                        window.recordBtn.disabled = false; // Ready for employee recording
+                        window.recordBtn.disabled = false; // เปิดปุ่มบันทึกเสียงพนักงาน
                     } else {
-                        // Finale turn finished
+                        // 2. เทิร์นสุดท้าย: จบ S1
                         window.s1StatusElement.textContent = "✅ จบบทที่ 1 แล้ว";
-                        initSection1_5(); // Transition to S1.5
+                        window.nextRoundBtn.disabled = false; // เปิดปุ่มไป S1.5
+                        window.recordBtn.disabled = true; // ปิดปุ่มบันทึกเสียงพนักงาน
                     }
                 });
             } else {
-                 // Should not happen if data is good
                  alert("ไม่พบไฟล์เสียงลูกค้าสำหรับเทิร์นนี้ กรุณาตรวจสอบข้อมูล S1");
-                 initSection1_5();
+                 initSection1_5(); 
             }
         };
         
@@ -655,8 +649,8 @@
             window.startQBtn.disabled = true;
             const currentQFile = selectedS2Files[qRound - 1];
 
-            if (currentQFile && currentQFile.customer_audio_url) {
-                playAudio(currentQFile.customer_audio_url, window.qStatus, () => {
+            if (currentQFile && currentQFile.audio_url) { // *** แก้ไข audio_url ที่นี่ด้วย ***
+                playAudio(currentQFile.audio_url, window.qStatus, () => {
                     window.answerBtn.disabled = false; // Enable Answer button
                 });
             } else {
@@ -680,8 +674,8 @@
              window.closeBtn.disabled = true;
              const currentObjection = selectedS3Files[cRound - 1];
 
-             if (currentObjection && currentObjection.customer_audio_url) {
-                 playAudio(currentObjection.customer_audio_url, window.s3StatusElement, () => {
+             if (currentObjection && currentObjection.audio_url) { // *** แก้ไข audio_url ที่นี่ด้วย ***
+                 playAudio(currentObjection.audio_url, window.s3StatusElement, () => {
                      window.replyBtn.disabled = false; // Enable Reply button
                  });
              } else {
@@ -730,8 +724,8 @@
 
             const followUpReply = globalS4FollowUpReplies[followUpStep - 1];
 
-            if (followUpStep <= maxFollowUp && followUpReply && followUpReply.customer_audio_url) {
-                playAudio(followUpReply.customer_audio_url, window.hStatusElement, () => {
+            if (followUpStep <= maxFollowUp && followUpReply && followUpReply.audio_url) { // *** แก้ไข audio_url ที่นี่ด้วย ***
+                playAudio(followUpReply.audio_url, window.hStatusElement, () => {
                     window.answerHBtn.disabled = false;
                 });
             } else {
@@ -803,8 +797,8 @@
             window.answerABtn.disabled = true;
             const currentStep = globalS5Steps[aRound - 1];
 
-            if (currentStep && currentStep.customer_audio_url) {
-                playAudio(currentStep.customer_audio_url, window.aStatus, () => {
+            if (currentStep && currentStep.audio_url) { // *** แก้ไข audio_url ที่นี่ด้วย ***
+                playAudio(currentStep.audio_url, window.aStatus, () => {
                     aRound++;
                     window.aRound.textContent = aRound;
                     updateStepHighlight(aRound);
@@ -822,11 +816,6 @@
                 window.answerABtn.disabled = false;
             }
         };
-
-
-        // ******************************************************
-        // END: โค้ดที่เพิ่มเข้ามาเพื่อการทำงานเต็มรูปแบบ (Full Option Code)
-        // ******************************************************
         
         const renderRegistrationSteps = function() {
             window.stepList.innerHTML = ''; 
@@ -847,19 +836,23 @@
                 cData.forEach(c => globalConfig[c.difficulty_level] = { S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S4: c.max_s4, S5: c.max_s5 });
 
                 // 2. S1 (FILTERED)
-                const { data: s1 } = await window.supabase.from('customer_replies_s1').select('*').overlaps('product_type', FILTER_TAGS).order('turn_index');
+                // *** ดึง audio_url ***
+                const { data: s1 } = await window.supabase.from('customer_replies_s1').select('turn_index, is_finale, product_type, audio_url').overlaps('product_type', FILTER_TAGS).order('turn_index');
                 globalS1Files = s1 || [];
                 
                 // 3. S2 (FILTERED)
-                const { data: s2 } = await window.supabase.from('questions_s2').select('*').overlaps('product_type', FILTER_TAGS).order('q_index');
+                // *** ดึง audio_url ***
+                const { data: s2 } = await window.supabase.from('questions_s2').select('q_index, product_type, audio_url, q_name').overlaps('product_type', FILTER_TAGS).order('q_index');
                 globalS2Files = s2 || [];
                 
                 // 4. S3 (FILTERED)
-                const { data: s3 } = await window.supabase.from('objections_s3').select('*').overlaps('product_type', FILTER_TAGS).order('ob_index');
+                // *** ดึง audio_url ***
+                const { data: s3 } = await window.supabase.from('objections_s3').select('ob_index, product_type, audio_url, ob_name').overlaps('product_type', FILTER_TAGS).order('ob_index');
                 globalS3Files = s3 || [];
                 
                 // 5. S4 Questions (FILTERED)
-                const { data: s4 } = await window.supabase.from('health_questions_s4').select('*').overlaps('product_type', FILTER_TAGS).order('q_index');
+                // *** ดึง yes_trigger_url ***
+                const { data: s4 } = await window.supabase.from('health_questions_s4').select('q_index, product_type, q_text, is_yes_trigger, yes_trigger_url').overlaps('product_type', FILTER_TAGS).order('q_index');
                 globalS4Questions = (s4 || []).map(q => q.q_text);
                 selectedDisease = (s4||[]).find(q => q.is_yes_trigger) || {name: 'โรคสำคัญ', yes_trigger_url: NO_ANSWER_URL};
                 
@@ -868,15 +861,14 @@
                 globalS4FollowUpNames = s4n || [];
                 
                 // 7. S4 Follow-up Replies (FILTERED)
-                const { data: s4r } = await window.supabase.from('s4_follow_up_replies').select('*').overlaps('product_type', FILTER_TAGS).order('step_index');
+                // *** ดึง audio_url ***
+                const { data: s4r } = await window.supabase.from('s4_follow_up_replies').select('step_index, product_type, audio_url').overlaps('product_type', FILTER_TAGS).order('step_index');
                 globalS4FollowUpReplies = s4r || [];
                 
                 // 8. S5 (FILTERED)
-                const { data: s5 } = await window.supabase.from('scripts_s5').select('*').overlaps('product_type', FILTER_TAGS).order('step_index');
+                // *** ดึง audio_url ***
+                const { data: s5 } = await window.supabase.from('scripts_s5').select('step_index, product_type, step_name, audio_url').overlaps('product_type', FILTER_TAGS).order('step_index');
                 globalS5Steps = s5 || [];
-
-                // Preload (Optional, but recommended)
-                // preloadCriticalAudio();
                 
                 window.loadingOverlay.style.display = "none";
                 return true;
@@ -1019,7 +1011,7 @@
 
             // E. Bind Other Buttons (Ensure all handlers are defined in the complete code)
             window.recordBtn.onclick = () => toggleRecording(1, window.recordBtn);
-            window.nextRoundBtn.onclick = initSection1_5; // Changed from nextTurn to initSection1_5 (Go to next section)
+            window.nextRoundBtn.onclick = initSection1_5;
             window.pitchRecordBtn.onclick = () => toggleRecording(2, window.pitchRecordBtn);
             window.nextSection2Btn.onclick = initSection2;
             window.startQBtn.onclick = playSequentialQuestion;
@@ -1030,7 +1022,7 @@
             window.nextSection4Btn.onclick = initSection4;
             window.answerHBtn.onclick = () => toggleRecording(6, window.answerHBtn);
             window.nextSection5Btn.onclick = initSection5;
-            window.answerABtn.onclick = () => toggleRecording(8, window.answerABtn); // Changed part to 8 for S5
+            window.answerABtn.onclick = () => toggleRecording(8, window.answerABtn);
             window.finalSaveBtn.onclick = saveAllRecordings;
             window.certBtn.onclick = generateCertificate;
         }
