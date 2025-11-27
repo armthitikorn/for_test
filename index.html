@@ -144,7 +144,8 @@
                     <option value="">-- กรุณาเลือกแบบประกัน --</option>
                     <option value="health">ประกันสุขภาพ (Health)</option>
                     <option value="saving1">ประกันสะสมทรัพย์ 1 (Saving1)</option>
-                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option> <option value="retirement">ประกันบำนาญ (Retirement)</option>
+                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option>
+                    <option value="retirement">ประกันบำนาญ (Retirement)</option>
                 </select>
             </div>
             <div style="margin-bottom: 20px;">
@@ -264,7 +265,7 @@
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-        import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'; // เปลี่ยนจาก uuid@8.3.2 เป็น supabase-js/esm
+        import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
 
         // --- 1. Supabase Config & Global State ---
         const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
@@ -347,6 +348,7 @@
                     window.loadingText.textContent = `กำลังดึงข้อมูล ${tableName}...`;
                     // ** NOTE: ลบ 'disease_name' ออกจาก health_questions_s4 เนื่องจาก Supabase 400 Error **
                     if (tableName === 'health_questions_s4') {
+                         // ตรวจสอบโครงสร้างในภาพ: ไม่มี disease_name แต่มี q_text
                          selectFields = 'q_index, q_text, is_yes_trigger, yes_trigger_url, product_type';
                     }
                     
@@ -358,17 +360,14 @@
                     
                     data.forEach(item => {
                         const productArray = item.product_type || [];
-                        const products = productArray.map(p => p.toLowerCase()); // Product Array to lowercase
+                        const product = productArray[0] ? productArray[0].toLowerCase() : 'unknown'; // ใช้ Product แรกในการ Grouping
                         
-                        // Group item by ALL product tags it contains
-                        products.forEach(product => {
-                             if (product) {
-                                if (!groupStore[product]) {
-                                    groupStore[product] = [];
-                                }
-                                groupStore[product].push(item);
+                        if (product) {
+                            if (!groupStore[product]) {
+                                groupStore[product] = [];
                             }
-                        });
+                            groupStore[product].push(item);
+                        }
                     });
                 };
 
@@ -385,11 +384,12 @@
                 for (const product in globalS4Questions) {
                     const data = globalS4Questions[product] || [];
                     const qTexts = data.map(q => q.q_text);
-                    const trigger = data.find(q => q.is_yes_trigger) || {}; 
+                    const trigger = data.find(q => q.is_yes_trigger || q.yes_trigger_url) || {}; 
                     
                     globalS4Questions[product] = qTexts; 
                     globalS4Questions[product].selectedDisease = trigger ? {
-                        disease_name: trigger.q_text.split(':')[0].trim() || 'โรคสำคัญ', 
+                        // ใช้ q_text เพื่อหาชื่อโรคเนื่องจากไม่มีคอลัมน์ disease_name
+                        disease_name: trigger.q_text ? trigger.q_text.split(':')[0].trim() || 'โรคสำคัญ' : 'โรคสำคัญ', 
                         yes_trigger_url: trigger.yes_trigger_url
                     } : null; // ใช้ null ถ้าไม่มี trigger
                 }
@@ -414,7 +414,7 @@
         const preloadCriticalAudio = function(product) {
             // ใช้ Product ที่ระบุเพื่อ Preload
             const s1Urls = (globalS1Files[product] || []).map(f => f.audio_url); 
-            const s2Urls = (globalS2Files[product] || []).map(f(f.audio_url); // FIX: Syntax error here
+            const s2Urls = (globalS2Files[product] || []).map(f => f.audio_url); 
             const s3Urls = (globalS3Files[product] || []).map(f => f.audio_url); 
             
             const diseaseData = globalS4Questions[product]?.selectedDisease || {};
@@ -466,7 +466,6 @@
             const availableFiles = s1FilesForProduct.filter(f => !f.is_finale);
             
             // 4. เลือกไฟล์ก่อนหน้าตามจำนวน maxTurns - 1
-            // ** IMPORTANT: ตรวจสอบให้แน่ใจว่า availableFiles มีจำนวนพอสำหรับ maxTurns-1 **
             const precedingFiles = availableFiles.slice(0, maxTurns - 1).map(f => f.audio_url); 
             
             selectedRandomFiles = precedingFiles;
@@ -480,7 +479,6 @@
                  window.s1StatusElement.textContent = `❌ DATA ERROR: ไม่พบไฟล์สุดท้าย (is_finale: TRUE) สำหรับ ${selectedProductType}. โปรดตรวจสอบตาราง!`;
                  window.recordBtn.disabled = true;
                  window.nextRoundBtn.disabled = true;
-                 // ไม่ต้อง return เพื่อให้สามารถรันต่อได้หากไม่พบไฟล์ แต่จะแจ้ง error
             }
             
             // 🚨 SAFETY CHECK 2: ตรวจสอบจำนวนไฟล์ที่เลือก
@@ -508,6 +506,7 @@
                 `;
             } else if (currentHIndex < maxH) {
                 const currentQText = currentS4Questions[currentHIndex];
+                // ใช้ q_text โดยตัดส่วนที่อยู่ในวงเล็บออกไป
                 const questionName = currentQText ? currentQText.split('(')[0].trim() : `คำถามที่ ${currentHIndex + 1}`;
                 
                 window.hQName.textContent = `คำถามที่ ${currentHIndex + 1}/${maxH}: ${questionName}`;
@@ -1096,8 +1095,8 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const originalMaxH = globalConfig[selectedDifficulty]?.S4 || 5;
             
-            // ตั้ง maxH: ถ้าเป็น health ใช้ค่า config เดิม (5), ถ้าไม่ใช่ (saving1, saving2, retirement) ใช้ 1
-            maxH = isHealthProduct ? originalMaxH : 1; 
+            // 🚨 การแก้ไขตามที่ผู้ใช้ร้องขอ: บังคับให้ maxH เป็น 1 เสมอ เพื่อให้มีคำถามหลักแค่ข้อเดียว
+            maxH = 1; 
 
             // 2. ถ้า maxH เป็น 0 (สำหรับ Non-Health) หรือไม่มีคำถาม S4 ให้ข้ามไป S5
             if (maxH === 0) {
@@ -1134,9 +1133,9 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             if (window.followUpQBtn) window.followUpQBtn.style.display = 'none'; 
             
             lastCustomerAudioUrl = 'S4 Health Q1 (Main Script)'; 
-            window.answerHBtn.textContent = `🎙️ 1. บันทึกคำถามสุขภาพ (${maxH} ข้อ)`; // Update button text
+            window.answerHBtn.textContent = `🎙️ 1. บันทึกคำถามสุขภาพ (1 ข้อ)`; // Update button text
             window.hStatusElement.textContent = `✅ ช่วงที่ 3 เสร็จสิ้น! กรุณาบันทึกคำถามสุขภาพที่ ${currentHIndex + 1}/${maxH}`;
-            alert(`จบบทที่ 3 แล้ว! เริ่มช่วงที่ 4: คำถามสุขภาพ (${maxH} คำถาม)`);
+            alert(`จบบทที่ 3 แล้ว! เริ่มช่วงที่ 4: คำถามสุขภาพ (1 คำถาม: Yes Trigger Enforced)`);
         }
 
         // K. ปรับปรุง playFixedHealthQuestion ให้ใช้ตรรกะ Trigger Dynamic
@@ -1151,18 +1150,26 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             // ⬇️ NEW TRIGGER LOGIC ⬇️
             let isTriggerQuestion = false;
-            if (selectedProductType === 'health') {
-                // สำหรับ Health (maxH > 1): Trigger คือคำถามที่ 4 (Index 3)
-                isTriggerQuestion = (currentHIndex === 3); 
-            } else {
-                // สำหรับ Saving/Retirement (maxH = 1): Trigger คือคำถามแรกและคำถามเดียว (Index 0)
-                isTriggerQuestion = (currentHIndex === 0 && maxH === 1);
+            
+            // 🚨 การแก้ไข: ถ้า maxH ถูกตั้งเป็น 1 (ตามที่บังคับไว้ใน initSection4)
+            // ให้ถือว่าคำถามแรก (currentHIndex === 0) คือคำถาม Trigger เสมอ
+            if (maxH === 1 && currentHIndex === 0) {
+                isTriggerQuestion = true;
             }
+            // --------------------
+
+            // Logic เดิมที่ใช้สำหรับ Health Product เมื่อ maxH > 1 จะถูกข้ามไปเนื่องจาก maxH ถูกบังคับเป็น 1
+            // if (selectedProductType === 'health') {
+            //     isTriggerQuestion = (currentHIndex === 3); 
+            // } else {
+            //     isTriggerQuestion = (currentHIndex === 0 && maxH === 1);
+            // }
             
             if (isTriggerQuestion && selectedDiseaseData) {
                 isYes = true;
                 customerReplyUrl = selectedDiseaseData.yes_trigger_url || NO_ANSWER_URL;
             } else {
+                // ถ้าเป็นคำถามอื่นที่ไม่ใช่ Trigger หรือไม่ได้ถูกบังคับให้เป็น 1
                 isYes = false;
                 customerReplyUrl = NO_ANSWER_URL;
             }
@@ -1275,6 +1282,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                         window.answerHBtn.textContent = `🎙️ ${currentHIndex + 1}. บันทึกคำถามสุขภาพ`;
                     } else {
                         updateHealthQuestionUI();
+                        window.hQName.textContent = `คำถามสุขภาพครบ ${maxH} ข้อแล้ว!`; // อัปเดต UI ให้ตรงกับ maxH = 1
                         window.hStatusElement.textContent = `🎉 คำถามสุขภาพครบ ${maxH} ข้อแล้ว! กรุณากด 'จบบทที่ 4' เพื่อไปช่วงที่ 5`;
                         window.followUpQBtn.style.display = 'none';
                         window.answerHBtn.style.display = 'none';
@@ -1529,11 +1537,11 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
         const startTest = function() {
             const userName = window.inputUserName.value.trim();
             const inputProductType = window.inputProductType.value; 
-            const userGroup = window.inputUserGroup.value;
+            const inputUserGroup = window.inputUserGroup.value;
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const config = globalConfig[selectedDifficulty];
 
-            if (!userName || !userGroup || !inputProductType) {
+            if (!userName || !inputUserGroup || !inputProductType) {
                 alert("กรุณากรอกชื่อ/รหัสพนักงาน เลือกแบบประกัน และเลือกกลุ่มผู้เข้าทำแบบทดสอบก่อนเริ่มทำแบบทดสอบ");
                 if (!userName) window.inputUserName.focus();
                 else if (!inputProductType) window.inputProductType.focus();
@@ -1549,7 +1557,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
             // ⬇️ กำหนดค่าให้กับ Global 'let' variables ⬇️
             selectedProductType = inputProductType;
-            userGroup = userGroup;
+            userGroup = inputUserGroup;
 
             // 4. ตรวจสอบว่ามีข้อมูล Product ที่เลือกหรือไม่
             if (!globalS1Files[selectedProductType] || globalS1Files[selectedProductType].length === 0) {
@@ -1559,11 +1567,11 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                  return;
             }
             
-            // 5. กำหนด Max Rounds
+            // 5. กำหนด Max Rounds (maxH จะถูกบังคับเป็น 1 ใน initSection4)
             maxTurns = config.S1;
             maxQ = config.S2;
             maxC = config.S3;
-            maxH = config.S4; 
+            maxH = config.S4; // ตั้งค่าเริ่มต้นจาก config ไว้ก่อน
             maxA = config.S5; 
             maxFollowUp = 5; 
 
