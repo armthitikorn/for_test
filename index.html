@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (รองรับหลาย Product)</title>
+    <title>E-Simulator Roleplay (หลาย Product)</title>
     
     <style>
-        /* (Styles remain the same) */
+        /* 1. สไตล์ที่ถูกปรับขนาด (NEW) */
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { 
             font-family: 'Sarabun', sans-serif;
@@ -53,6 +53,7 @@
         #finalSaveBtn { background-color: #007bff; color: white; font-weight: bold; }
         #finalSaveBtn.done { background-color: #28a745; }
 
+        /* Responsive Form Control */
         .form-control {
             padding: 10px;
             border: 1px solid #ccc;
@@ -65,6 +66,7 @@
             font-size: 16px;
         }
 
+        /* Difficulty Radio Styles */
         .difficulty-option {
             display: inline-block;
             margin: 8px;
@@ -83,6 +85,7 @@
         }
         input[type="radio"] { display: none; }
         
+        /* Loading Overlay */
         #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); color: white; display: none; 
@@ -94,6 +97,7 @@
         .progress { width: 80%; max-width: 400px; margin-top: 20px; height: 15px; background-color: #e9ecef; border-radius: 0.25rem; overflow: hidden; }
         .progress-bar { height: 100%; background-color: #007bff; transition: width 0.6s ease; }
         
+        /* Certificate Style */
         #certificate { border: 5px solid #333; padding: 40px; width: 90%; max-width: 800px; margin: 40px auto; text-align: center; display: none; }
 
         @media (max-width: 600px) {
@@ -125,7 +129,6 @@
         
         <div id="registrationSection">
             <h2 style="color: #333;">📝 หน้าลงทะเบียนและตั้งค่าแบบทดสอบ</h2>
-            
             <div style="margin-bottom: 20px;">
                 <label for="inputUserName" style="font-weight: bold; display: block; margin-bottom: 10px;">
                     ชื่อ-นามสกุล/รหัสพนักงาน:
@@ -141,10 +144,10 @@
                     <option value="">-- กรุณาเลือกแบบประกัน --</option>
                     <option value="health">ประกันสุขภาพ (Health)</option>
                     <option value="saving1">ประกันสะสมทรัพย์ 1 (Saving1)</option>
+                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option> 
                     <option value="retirement">ประกันบำนาญ (Retirement)</option>
                 </select>
             </div>
-            
             <div style="margin-bottom: 20px;">
                 <label for="inputUserGroup" style="font-weight: bold; display: block; margin-bottom: 10px;">
                     กลุ่มผู้เข้าทำแบบทดสอบ:
@@ -307,7 +310,7 @@
         let globalS4FollowUpNames = {};
         let globalS4FollowUpReplies = {};
         let globalS5Steps = {};
-        
+
         // Fixed S4 Audio
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
         
@@ -321,8 +324,7 @@
         // --- Utility Functions ---
         let audioCache = {};
         let selectedRandomFiles = []; 
-        let selectedDiseaseData = {}; // เก็บข้อมูลโรคสำคัญสำหรับ Product ที่เลือก
-        
+
         // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase (ใช้ตรรกะ Grouping)
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
@@ -352,7 +354,6 @@
                     
                     data.forEach(item => {
                         const productArray = item.product_type || [];
-                        // 🚨 ใช้ Product ตัวแรกเป็น Key
                         const product = productArray[0] ? productArray[0].toLowerCase() : 'unknown'; 
                         
                         if (product) {
@@ -380,7 +381,7 @@
                     const qTexts = data.map(q => q.q_text);
                     const trigger = data.find(q => q.is_yes_trigger) || {}; 
                     
-                    globalS4Questions[product] = qTexts; // เก็บ Q Text เป็น Array หลัก
+                    globalS4Questions[product] = qTexts; 
                     globalS4Questions[product].selectedDisease = trigger ? {
                         disease_name: trigger.q_text ? trigger.q_text.split(':')[0] : 'โรคสำคัญ', 
                         yes_trigger_url: trigger.yes_trigger_url
@@ -405,14 +406,13 @@
         }
 
         const preloadCriticalAudio = function(product) {
-            // ใช้ Product ที่ระบุเพื่อ Preload
             const s1Urls = (globalS1Files[product] || []).map(f => f.audio_url); 
             const s2Urls = (globalS2Files[product] || []).map(f => f.audio_url); 
             const s3Urls = (globalS3Files[product] || []).map(f => f.audio_url); 
             
             const diseaseData = globalS4Questions[product]?.selectedDisease || {};
-            const s4FollowUpRepliesData = globalS4FollowUpReplies[product] || [];
-            const s5StepsData = globalS5Steps[product] || [];
+            const s4FollowUpRepliesData = (globalS4FollowUpReplies[product] || []);
+            const s5StepsData = (globalS5Steps[product] || []);
             
             const s4Urls = [
                 NO_ANSWER_URL, 
@@ -423,8 +423,6 @@
 
             const allUrls = [...s1Urls, ...s2Urls, ...s3Urls, ...s4Urls, ...s5Urls];
             
-            console.log(`Preloading ${allUrls.length} customer audio files for ${product}...`);
-
             allUrls.forEach(url => {
                 if (url && !audioCache[url]) {
                     const audio = new Audio(url);
@@ -432,8 +430,6 @@
                     audioCache[url] = audio;
                 }
             });
-            
-            console.log("Preloading started. The test can proceed.");
         }
 
         const getCachedAudioElement = function(url, fallbackToNew = true) {
@@ -473,7 +469,8 @@
         const updateHealthQuestionUI = function() {
             const currentS4Questions = globalS4Questions[selectedProductType] || [];
             const currentS4FollowUpNames = globalS4FollowUpNames[selectedProductType] || [];
-            
+            const selectedDiseaseData = globalS4Questions[selectedProductType]?.selectedDisease || {};
+
             const healthQuestionDisplay = document.getElementById('healthQuestionDisplay');
             if (isFollowUpMode) {
                 const currentFNameData = currentS4FollowUpNames.find(f => f.step_index === followUpStep);
@@ -520,8 +517,8 @@
             const currentLi = document.getElementById(`reg-step-${currentStep}`);
             if (currentLi) {
                 currentLi.style.fontWeight = 'bold';
-                currentLi.style.color = '#007bff';
-                currentLi.style.backgroundColor = '#e7f3ff';
+                li.style.color = '#007bff';
+                li.style.backgroundColor = '#e7f3ff';
             }
         }
         const generateCertificate = function() {
@@ -539,7 +536,6 @@
         // --- BATCH UPLOAD Logic (Store to Array) ---
         const storeRecording = function(audioBlob, part, qNum, qText, customerAudioUrl = 'N/A') {
             allRecordings.push({ audioBlob, part, qNum, qText, customerAudioUrl });
-            console.log(`✅ Recording saved locally: P${part}-Q${qNum}. Customer Audio URL: ${customerAudioUrl}. Total recordings: ${allRecordings.length}`);
             
             const statusElement = (part === 1) ? window.s1StatusElement : 
                                   (part === 15) ? window.pitchStatusElement : 
@@ -640,7 +636,7 @@
 
             setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 1500);
         }
-        
+
         // --- Main Recording Logic (toggleRecording logic remains the same) ---
         const toggleRecording = async function(type) {
             let statusElement, buttonElement, nextAutoAction, originalButtonText;
@@ -657,6 +653,8 @@
             const currentS4Questions = globalS4Questions[selectedProductType] || [];
             const currentS4FollowUpNames = globalS4FollowUpNames[selectedProductType] || [];
             const s5StepsForProduct = globalS5Steps[selectedProductType] || [];
+            const selectedDiseaseData = globalS4Questions[selectedProductType]?.selectedDisease || {};
+
 
             const getQText = (arr, index, fallback) => (arr[index] && arr[index].q_text) || arr[index] || fallback; 
 
@@ -695,7 +693,6 @@
                 nextAutoAction = startNextCloseRoundAuto; 
                 originalButtonText = '🎙️ 2. บันทึกเสียงตอบข้อโต้แย้ง';
             }
-            // S4: คำถามสุขภาพหลัก
             else if (type === 5) { 
                 part = 4; qNum = currentHIndex + 1; qText = `S4: คำถามสุขภาพหลัก Q${currentHIndex + 1}: ${getQText(currentS4Questions, currentHIndex, 'คำถามสุขภาพ')}`;
                 statusElement = window.hStatusElement;
@@ -703,21 +700,18 @@
                 nextAutoAction = playFixedHealthQuestion; 
                 originalButtonText = '🎙️ 1. บันทึกคำถามสุขภาพ';
             } 
-            // S4: ซักประวัติ Follow-up
             else if (type === 7) { 
-                const diseaseInfo = globalS4Questions[selectedProductType]?.selectedDisease || { disease_name: 'โรคสำคัญ' };
                 const currentFName = currentS4FollowUpNames.find(f => f.step_index === followUpStep)?.step_name || H_FOLLOW_UP_NAMES_HARDCODE[followUpStep - 1];
                 
                 part = 4; 
                 const baseNum = currentHIndex + 1; 
                 qNum = baseNum * 10 + followUpStep; 
-                qText = `S4: ซักประวัติ ${diseaseInfo.disease_name} Q${baseNum}.F${followUpStep}: ${currentFName}`;
+                qText = `S4: ซักประวัติ ${selectedDiseaseData.disease_name || 'โรคสำคัญ'} Q${baseNum}.F${followUpStep}: ${currentFName}`;
                 statusElement = window.hStatusElement;
                 buttonElement = window.followUpQBtn; 
                 nextAutoAction = playFixedFollowUpQuestion; 
                 originalButtonText = `🎙️ บันทึกคำถามซักประวัติ Q${followUpStep}`;
             } 
-            // S5: ลงทะเบียน
             else if (type === 6) { 
                 const currentStepName = s5StepsForProduct.find(s => s.step_index === aRound)?.step_name || 'ขั้นตอนลงทะเบียน';
                 
@@ -808,6 +802,13 @@
                 const fileToPlay = selectedRandomFiles[turn - 1]; 
                 const isFinalCustomerTurn = (turn === maxTurns);
                 
+                if (!fileToPlay) {
+                    window.s1StatusElement.textContent = `❌ ไม่พบไฟล์เสียงลูกค้าสำหรับโต้ตอบที่ ${turn}. กรุณาตรวจสอบฐานข้อมูล!`;
+                    window.recordBtn.disabled = true;
+                    if (isFinalCustomerTurn) window.nextRoundBtn.disabled = false;
+                    return;
+                }
+
                 window.s1StatusElement.textContent = `⏳ กำลังโหลดเสียงลูกค้า...`;
                 const audioEl = getCachedAudioElement(fileToPlay, true);
                 window.customerAudio = audioEl;
@@ -915,7 +916,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             alert("จบบทที่ 1.5 แล้ว! เริ่มช่วงที่ 2: ตอบคำถามลูกค้า");
         }
 
-        // I. ปรับปรุง playSequentialQuestion ให้ใช้ globalS2Files
+        // I. ปรับปรุง playSequentialQuestion ให้ใช้ globalS2Files (แก้ไข Indexing)
         const playSequentialQuestion = function() {
             if (qRound >= maxQ) {
                 window.s2StatusElement.textContent = `🎉 คำถามครบ ${maxQ} ข้อแล้ว!
@@ -929,13 +930,16 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             qRound++;
             window.qRoundSpan.textContent = qRound;
             
+            // 🚨 แก้ไข: กรองไฟล์ S2 สำหรับ Product นี้เท่านั้น และใช้ Array Index
             const s2FilesForProduct = globalS2Files[selectedProductType] || [];
-            const s2File = s2FilesForProduct.find(f => f.q_index === qRound);
+            
+            // ใช้ qRound - 1 เพื่ออ้างถึง Array Index (คำถามที่ 1 คือ Index 0)
+            const s2File = s2FilesForProduct[qRound - 1]; 
             const selectedFile = s2File ? s2File.audio_url : null;
             
             if (!selectedFile) {
                 console.error("Missing S2 audio file for index:", qRound);
-                window.s2StatusElement.textContent = "❌ ไม่พบไฟล์เสียงลูกค้าสำหรับคำถามนี้ (Product: " + selectedProductType + ")";
+                window.s2StatusElement.textContent = `❌ ไม่พบไฟล์เสียงลูกค้าสำหรับคำถามที่ ${qRound} (Product: ${selectedProductType}). **โปรดตรวจสอบตาราง questions_s2!**`;
                 return;
             }
             
@@ -989,7 +993,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             alert("จบบทที่ 2 แล้ว! เริ่มช่วงที่ 3: ปิดการขาย + ข้อโต้แย้ง");
         }
 
-        // J. ปรับปรุง playSequentialObjectionAuto ให้ใช้ globalS3Files
+        // J. ปรับปรุง playSequentialObjectionAuto ให้ใช้ globalS3Files (แก้ไข Indexing)
         const playSequentialObjectionAuto = function() {
             if (cRound >= maxC) {
                 window.s3StatusElement.textContent = "🎉 เสร็จสิ้นช่วงที่ 3! กรุณากด 'จบบทที่ 3' เพื่อไปช่วงที่ 4";
@@ -1006,13 +1010,15 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             let selectedFile;
             
+            // 🚨 แก้ไข: กรองไฟล์ S3 สำหรับ Product นี้เท่านั้น และใช้ Array Index
             const s3FilesForProduct = globalS3Files[selectedProductType] || [];
-            const s3File = s3FilesForProduct.find(f => f.ob_index === cRound);
+            
+            const s3File = s3FilesForProduct[cRound - 1]; // ใช้ cRound - 1
             selectedFile = s3File ? s3File.audio_url : null;
             
             if (!selectedFile) {
                 console.error("Missing S3 audio file for index:", cRound);
-                window.s3StatusElement.textContent = "❌ ไม่พบไฟล์เสียงลูกค้าสำหรับข้อโต้แย้งนี้ (Product: " + selectedProductType + ")";
+                window.s3StatusElement.textContent = `❌ ไม่พบไฟล์เสียงลูกค้าสำหรับข้อโต้แย้งที่ ${cRound} (Product: ${selectedProductType}). **โปรดตรวจสอบตาราง objections_s3!**`;
                 return;
             }
             
@@ -1058,7 +1064,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
         
         // --- S4: Health Check Flow (Dynamic Logic) ---
         
-        // 🛠️ initSection4: กำหนด maxH ตาม Product
+        // 🛠️ initSection4: กำหนด maxH ตาม Product (Dynamic Logic)
         const initSection4 = function() {
             
             // 1. ตรวจสอบและกำหนดค่า maxH ใหม่
@@ -1085,9 +1091,6 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             isFollowUpMode = false;
             followUpStep = 0;
             
-            // 3. Update Global Disease Data (ใช้ข้อมูลของ Product ที่เลือก)
-            selectedDiseaseData = globalS4Questions[selectedProductType]?.selectedDisease || {}; 
-            
             updateHealthQuestionUI(); 
             window.answerHBtn.disabled = false;
             
@@ -1106,6 +1109,8 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             let customerReplyUrl;
             let isYes;
+            
+            const selectedDiseaseData = globalS4Questions[selectedProductType]?.selectedDisease || {};
             
             // ⬇️ NEW TRIGGER LOGIC ⬇️
             let isTriggerQuestion = false;
@@ -1183,7 +1188,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             };
         }
         
-        // L. ปรับปรุง playFixedFollowUpQuestion (Remains the same)
+        // L. ปรับปรุง playFixedFollowUpQuestion ให้ใช้ globalS4FollowUpReplies (NEW)
         const playFixedFollowUpQuestion = function() {
             window.followUpQBtn.disabled = true;
             
@@ -1193,7 +1198,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
             if (!customerReplyUrl) {
                 console.error("Missing S4 Follow-up audio file for step:", followUpStep);
-                window.hStatusElement.textContent = "❌ ไม่พบไฟล์เสียงตอบกลับการซักประวัติ (Product: " + selectedProductType + ")";
+                window.hStatusElement.textContent = `❌ ไม่พบไฟล์เสียงตอบกลับการซักประวัติ (Product: ${selectedProductType})`;
                 return;
             }
 
@@ -1295,7 +1300,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             if (!selectedFile) {
                 console.error("Missing S5 audio file for step:", aRound);
-                window.aStatusElement.textContent = "❌ ไม่พบไฟล์เสียงตอบกลับลงทะเบียน (Product: " + selectedProductType + ")";
+                window.aStatusElement.textContent = `❌ ไม่พบไฟล์เสียงตอบกลับลงทะเบียน (Product: ${selectedProductType})`;
                 return;
             }
 
@@ -1347,7 +1352,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
         const saveAllRecordings = function() {
             const userName = window.inputUserName.value.trim();
             const userGroup = window.inputUserGroup.value;
-            const productType = window.inputProductType.value; // ดึงค่า Product Type
+            const productType = window.inputProductType.value; 
             
             if (!userName || !userGroup || !productType) {
                  alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนทำการบันทึกเสร็จสิ้น");
@@ -1370,7 +1375,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             }
             currentUserId = userId;
             
-            // 2. DOM Element Assignments (ต้องแน่ใจว่า Element มีอยู่จริง)
+            // 2. DOM Element Assignments
             window.registrationSection = document.getElementById("registrationSection");
             window.testSection = document.getElementById("testSection");
             window.startTestBtn = document.getElementById("startTestBtn");
@@ -1483,16 +1488,16 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             lastCustomerAudioUrl = 'N/A';
         }
 
-        // O. ปรับปรุง startTest ให้ใช้ globalConfig และกำหนดค่า Product Type ที่เลือก
+        // O. ปรับปรุง startTest
         const startTest = function() {
             const userName = window.inputUserName.value.trim();
-            const inputProductType = window.inputProductType.value; // 💡 ดึงค่าจาก Dropdown
+            const inputProductType = window.inputProductType.value; 
             const inputUserGroup = window.inputUserGroup.value;     
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const config = globalConfig[selectedDifficulty];
 
             if (!userName || !inputUserGroup || !inputProductType) {
-                alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนเริ่มทำแบบทดสอบ");
+                alert("กรุณากรอกชื่อ/รหัสพนักงาน เลือกแบบประกัน และเลือกกลุ่มผู้เข้าทำแบบทดสอบก่อนเริ่มทำแบบทดสอบ");
                 if (!userName) window.inputUserName.focus();
                 else if (!inputProductType) window.inputProductType.focus();
                 else window.inputUserGroup.focus();
@@ -1511,8 +1516,9 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             maxTurns = config.S1;
             maxQ = config.S2;
             maxC = config.S3;
-            maxH = config.S4; // maxH จะถูกปรับอีกครั้งใน initSection4
+            maxH = config.S4; 
             maxA = config.S5; 
+            maxFollowUp = 5; // Fixed value for follow-up steps
 
             window.maxTurnSpan.textContent = maxTurns;
             window.maxQSpan.textContent = maxQ;
@@ -1531,7 +1537,6 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
             lastCustomerAudioUrl = 'S1 Initial Greeting (No Customer Audio)';
 
-            // ตรวจสอบว่ามีข้อมูลสำหรับ Product Type นี้หรือไม่ก่อนเริ่ม
             if (!globalS1Files[selectedProductType] || globalS1Files[selectedProductType].length === 0) {
                  alert(`❌ ไม่พบข้อมูลไฟล์เสียงสำหรับ Product Type "${selectedProductType}" ในตาราง customer_replies_s1 กรุณาตรวจสอบการตั้งค่า Supabase`);
                  window.registrationSection.style.display = 'block';
