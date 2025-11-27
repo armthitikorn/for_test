@@ -6,7 +6,7 @@
     <title>E-Simulator Roleplay (รองรับหลาย Product)</title>
     
     <style>
-        /* 1. สไตล์ที่ถูกปรับขนาด */
+        /* (Styles remain the same) */
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { 
             font-family: 'Sarabun', sans-serif;
@@ -53,7 +53,6 @@
         #finalSaveBtn { background-color: #007bff; color: white; font-weight: bold; }
         #finalSaveBtn.done { background-color: #28a745; }
 
-        /* Responsive Form Control */
         .form-control {
             padding: 10px;
             border: 1px solid #ccc;
@@ -66,7 +65,6 @@
             font-size: 16px;
         }
 
-        /* Difficulty Radio Styles */
         .difficulty-option {
             display: inline-block;
             margin: 8px;
@@ -85,7 +83,6 @@
         }
         input[type="radio"] { display: none; }
         
-        /* Loading Overlay */
         #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); color: white; display: none; 
@@ -97,7 +94,6 @@
         .progress { width: 80%; max-width: 400px; margin-top: 20px; height: 15px; background-color: #e9ecef; border-radius: 0.25rem; overflow: hidden; }
         .progress-bar { height: 100%; background-color: #007bff; transition: width 0.6s ease; }
         
-        /* Certificate Style */
         #certificate { border: 5px solid #333; padding: 40px; width: 90%; max-width: 800px; margin: 40px auto; text-align: center; display: none; }
 
         @media (max-width: 600px) {
@@ -284,7 +280,7 @@
         // 🚨 GLOBAL STATE FOR CUSTOMER AUDIO URL & USER GROUP / PRODUCT
         let lastCustomerAudioUrl = 'N/A';
         let userGroup = ''; 
-        let selectedProductType = ''; // 👈 จะถูกกำหนดเมื่อกด Start Test
+        let selectedProductType = ''; // 👈 ต้องเป็น LET เพื่อให้ reassign ค่าใน startTest ได้
         
         // Round Counters 
         let turn = 0;
@@ -309,12 +305,12 @@
         let globalS1Files = {}; // { 'health': [...], 'retirement': [...] }
         let globalS2Files = {};
         let globalS3Files = {};
-        let globalS4Questions = {}; // { 'health': [q_text1, q_text2, ...], 'health': { selectedDisease: {...} } }
+        let globalS4Questions = {}; 
         let globalS4FollowUpNames = {};
         let globalS4FollowUpReplies = {};
         let globalS5Steps = {};
         
-        // Fixed S4 Audio (ต้องจัดการใน Admin เพื่อให้ยืดหยุ่น)
+        // Fixed S4 Audio
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
         
         // --- Hardcoded Data ที่ยังต้องใช้โครงสร้างเดิมเพื่อทำงาน ---
@@ -359,7 +355,8 @@
                     data.forEach(item => {
                         // 🛠️ การจัดการ Array: ดึง Product Name ตัวแรกจาก Array เช่น ['health'] -> 'health'
                         const productArray = item.product_type || [];
-                        const product = productArray[0]; 
+                        // ** ใช้ตัวพิมพ์เล็กทั้งหมดตามข้อมูลที่คุณให้มา: ['health'], ['saving1'], ['retirement'] **
+                        const product = productArray[0] ? productArray[0].toLowerCase() : 'unknown'; 
                         
                         if (product) {
                             if (!groupStore[product]) {
@@ -591,7 +588,7 @@
             const userName = window.inputUserName.value.trim() || `Anon User`;
             const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const group = window.inputUserGroup.value.trim();
-            const insuranceType = selectedProductType; // 👈 ใช้ Product Type ที่เลือก
+            const insuranceType = selectedProductType; // 👈 ใช้ Global Variable ที่ถูกต้อง
             
             let successfulUploads = 0;
 
@@ -669,7 +666,7 @@
             setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 1500);
         }
         
-        // --- Main Recording Logic (Remains the same) ---
+        // --- Main Recording Logic (toggleRecording function remains the same) ---
         const toggleRecording = async function(type) {
             let statusElement, buttonElement, nextAutoAction, originalButtonText;
             let part, qNum, qText, chunks = [];
@@ -823,7 +820,7 @@
             }
         }
         
-        // --- Section 1 Functions (ใช้ selectedRandomFiles ที่สร้างจาก globalS1Files) ---
+        // --- Section 1 Functions (endTurn logic remains the same) ---
         const endTurn = function() {
             if (turn < maxTurns) { 
                 
@@ -893,8 +890,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             }
         }
 
-        // --- Section 1.5, 2, 3 Flow ---
-        
+        // --- Section 1.5, 2, 3 Flow (playSequentialQuestion and playSequentialObjectionAuto logic remains the same but uses selectedProductType) ---
         const initSection1_5 = function() {
             document.getElementById('section1Div').style.display = 'none';
             document.getElementById('section1_5Div').style.display = 'block';
@@ -1083,7 +1079,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
         }
         
         
-        // --- S4: Health Check Flow ---
+        // --- S4: Health Check Flow (Logic remains the same but uses selectedProductType) ---
         
         const initSection4 = function() {
             document.getElementById('section1Div').style.display = 'none';
@@ -1493,16 +1489,17 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
         // O. ปรับปรุง startTest ให้ใช้ globalConfig และกำหนดค่า Product Type ที่เลือก
         const startTest = function() {
+            // ⬇️ ใช้ const สำหรับค่าที่อ่านจาก Input ชั่วคราว ⬇️
             const userName = window.inputUserName.value.trim();
-            const productType = window.inputProductType.value;
-            const userGroup = window.inputUserGroup.value;
+            const inputProductType = window.inputProductType.value; // Local const
+            const inputUserGroup = window.inputUserGroup.value;     // Local const
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const config = globalConfig[selectedDifficulty];
 
-            if (!userName || !userGroup || !productType) {
+            if (!userName || !inputUserGroup || !inputProductType) {
                 alert("กรุณากรอกชื่อ/รหัสพนักงาน เลือกแบบประกัน และเลือกกลุ่มผู้เข้าทำแบบทดสอบก่อนเริ่มทำแบบทดสอบ");
                 if (!userName) window.inputUserName.focus();
-                else if (!productType) window.inputProductType.focus();
+                else if (!inputProductType) window.inputProductType.focus();
                 else window.inputUserGroup.focus();
                 return;
             }
@@ -1512,9 +1509,9 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                 return;
             }
 
-            // กำหนด Global State ตามที่ผู้ใช้เลือก
-            selectedProductType = productType;
-            userGroup = userGroup;
+            // ⬇️ กำหนดค่าให้กับ Global 'let' variables ⬇️
+            selectedProductType = inputProductType;
+            userGroup = inputUserGroup;
 
             maxTurns = config.S1;
             maxQ = config.S2;
