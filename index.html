@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (ประกันสุขภาพ - FIXED PRODUCT)</title>
+    <title>E-Simulator Roleplay (หลาย Product)</title>
     
     <style>
         /* 1. สไตล์ที่ถูกปรับขนาด (NEW) */
@@ -53,7 +53,7 @@
         #finalSaveBtn { background-color: #007bff; color: white; font-weight: bold; }
         #finalSaveBtn.done { background-color: #28a745; }
 
-        /* Responsive Form Control (ซ่อนไว้แต่คงไว้ใน DOM เพื่อให้ JS อ้างอิงได้) */
+        /* Responsive Form Control */
         .form-control {
             padding: 10px;
             border: 1px solid #ccc;
@@ -64,7 +64,6 @@
             margin-top: 5px;
             text-align: center;
             font-size: 16px;
-            display: none; /* ซ่อน Input ที่ไม่จำเป็นในหน้าแรก */
         }
 
         /* Difficulty Radio Styles */
@@ -126,16 +125,43 @@
     </div>
 
     <div class="container-box">
-        <h1>E-Simulator Roleplay (ประกันสุขภาพ)</h1>
+        <h1>E-Simulator Roleplay (หลาย Product)</h1>
         
         <div id="registrationSection">
-            <h2 style="color: #333;">📝 หน้าตั้งค่าระดับความยาก</h2>
+            <h2 style="color: #333;">📝 หน้าลงทะเบียนและตั้งค่าแบบทดสอบ</h2>
             
-            <input type="text" class="form-control" id="inputUserName" required style="display: none;">
-            <select class="form-control" id="inputUserGroup" required style="display: none;">
-                <option value="Health_Pre_Test_Group">Health Pre-Test Group</option>
-            </select>
+            <div style="margin-bottom: 20px;">
+                <label for="inputUserName" style="font-weight: bold; display: block; margin-bottom: 10px;">
+                    ชื่อ-นามสกุล/รหัสพนักงาน:
+                </label>
+                <input type="text" class="form-control" id="inputUserName" placeholder="กรอกชื่อของคุณ" required>
+            </div>
             
+            <div style="margin-bottom: 20px;">
+                <label for="inputProductType" style="font-weight: bold; display: block; margin-bottom: 10px;">
+                    แบบประกันที่ทำการทดสอบ:
+                </label>
+                <select class="form-control" id="inputProductType" required>
+                    <option value="">-- กรุณาเลือกแบบประกัน --</option>
+                    <option value="Health">ประกันสุขภาพ (Health)</option>
+                    <option value="Saving1">ประกันสะสมทรัพย์ 1 (Saving1)</option>
+                    <option value="Saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option>
+                    <option value="Retirement">ประกันบำนาญ (Retirement)</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="inputUserGroup" style="font-weight: bold; display: block; margin-bottom: 10px;">
+                    กลุ่มผู้เข้าทำแบบทดสอบ:
+                </label>
+                <select class="form-control" id="inputUserGroup" required>
+                    <option value="">-- กรุณาเลือกกลุ่ม --</option>
+                    <option value="Nursery">กลุ่มเนอสเซอรี่</option>
+                    <option value="NewTSRsOnboarding">กลุ่ม New TSRs On boarding</option>
+                    <option value="NewTSRs">กลุ่ม New TSRs</option>
+                    <option value="ExistingTSRs">กลุ่ม TSRs existing</option>
+                </select>
+            </div>
             <div style="margin-bottom: 30px;">
                 <label style="font-weight: bold; display: block; margin-bottom: 10px;">
                     ระดับความยากของแบบทดสอบ:
@@ -244,7 +270,7 @@
         import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
 
         // --- 1. Supabase Config & Global State ---
-        // ** ต้องแน่ใจว่า Supabase URL และ Key ถูกต้อง **
+        // ** ใช้ URL และ Key เดิมในการเชื่อมต่อ **
         const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno'; 
         window.supabase = createClient(supabaseUrl, supabaseKey);
@@ -256,11 +282,10 @@
         
         let allRecordings = []; 
         
-        // 🚨 GLOBAL STATE FOR CUSTOMER AUDIO URL & USER GROUP
+        // 🚨 GLOBAL STATE FOR CUSTOMER AUDIO URL & USER GROUP / PRODUCT
         let lastCustomerAudioUrl = 'N/A';
-        // FIX: กำหนดค่าคงที่เพื่อให้ Logic การบันทึกทำงานได้
-        let userGroup = 'Health_Pre_Test_Group'; 
-        let selectedProductType = 'Health'; // 👈 FIX: กำหนด Product Type เป็น 'Health' ตายตัว
+        let userGroup = ''; 
+        let selectedProductType = ''; // 👈 NEW: จะถูกกำหนดเมื่อกด Start Test
         
         // Round Counters 
         let turn = 0;
@@ -269,7 +294,8 @@
         let currentHIndex = 0; 
         let isFollowUpMode = false;
         let followUpStep = 0; 
-        let selectedDisease = null;
+        // selectedDisease จะถูกดึงจาก globalS4Questions ตาม Product Type
+        let selectedDisease = null; 
         let aRound = 0; 
 
         // Global Max Rounds 
@@ -281,9 +307,9 @@
         let maxA; 
         
         // --- GLOBAL DATA STORES (ดึงจาก Supabase) ---
+        // โครงสร้างข้อมูลจะถูกเปลี่ยนเป็น Object ที่มี key เป็น Product Type
         let globalConfig = {};
-        // โครงสร้างข้อมูลจะถูกเปลี่ยนเป็น Object ที่มี key เป็น Product Type ที่ถูกกำหนดไว้
-        let globalS1Files = {}; 
+        let globalS1Files = {}; // { 'Health': [...], 'Saving1': [...] }
         let globalS2Files = {};
         let globalS3Files = {};
         let globalS4Questions = {};
@@ -305,7 +331,7 @@
         let audioCache = {};
         let selectedRandomFiles = []; // S1 turn files based on difficulty
         
-        // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase (ปรับปรุงให้กรอง Product 'Health' เท่านั้น)
+        // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase (ปรับปรุงเพื่อดึงทุก Product)
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
             window.loadingText.textContent = `กำลังดึงข้อมูลการตั้งค่าจากฐานข้อมูล...`;
@@ -323,48 +349,53 @@
                     };
                 });
                 
-                // Helper function to fetch and group data by the FIXED product type 'Health'
+                // Helper function to fetch and group data by the 'product_type' field
                 const fetchAndGroup = async (tableName, keyField, groupStore) => {
-                    window.loadingText.textContent = `กำลังดึงข้อมูล ${tableName} (Product: ${selectedProductType})...`;
+                    window.loadingText.textContent = `กำลังดึงข้อมูล ${tableName}...`;
                     const { data, error } = await window.supabase
                         .from(tableName)
-                        .select('*') 
+                        .select('*')
                         .order(keyField, { ascending: true });
                     if (error) throw error;
                     
-                    // กรองข้อมูลเฉพาะ Product Type 'Health' และเก็บใน Global Store
-                    groupStore[selectedProductType] = data.filter(item => item.product_type === selectedProductType);
+                    data.forEach(item => {
+                        const product = item.product_type; 
+                        if (product) {
+                            if (!groupStore[product]) {
+                                groupStore[product] = [];
+                            }
+                            groupStore[product].push(item);
+                        }
+                    });
                 };
 
+                // ดึงข้อมูลทั้งหมดและจัดกลุ่มตาม Product Type
                 await fetchAndGroup('customer_replies_s1', 'turn_index', globalS1Files);
                 await fetchAndGroup('questions_s2', 'q_index', globalS2Files);
                 await fetchAndGroup('objections_s3', 'ob_index', globalS3Files);
-                
-                // S4 Questions (ต้องแยก q_text และ selectedDisease)
-                await fetchAndGroup('health_questions_s4', 'q_index', globalS4Questions);
-                
-                // จัดกลุ่ม S4 Questions ให้เป็น array ของ q_text และหา selectedDisease สำหรับ 'Health'
-                const s4Data = globalS4Questions[selectedProductType] || [];
-                globalS4Questions[selectedProductType] = s4Data.map(q => q.q_text);
-                
-                // หา selectedDisease (ใช้ใน S4 Flow)
-                const trigger = s4Data.find(q => q.q_text.includes('โรคสำคัญ'));
-                if (trigger) {
-                    globalS4Questions[selectedProductType].selectedDisease = {
-                        disease_name: trigger.q_text.split(':')[0],
-                        yes_trigger_url: trigger.yes_trigger_url
-                    };
-                } else {
-                    globalS4Questions[selectedProductType].selectedDisease = {};
-                }
-
+                await fetchAndGroup('health_questions_s4', 'q_index', globalS4Questions); // ดึง Q Text และ Yes Trigger URL
                 await fetchAndGroup('s4_follow_up_names', 'step_index', globalS4FollowUpNames);
                 await fetchAndGroup('s4_follow_up_replies', 'step_index', globalS4FollowUpReplies);
                 await fetchAndGroup('scripts_s5', 'step_index', globalS5Steps);
-
-                window.loadingText.textContent = `✅ โหลดข้อมูล Health จาก Supabase เสร็จสมบูรณ์!`;
                 
-                preloadCriticalAudio(); 
+                // จัดโครงสร้าง S4 Questions: แยก Q Text และ Selected Disease ออกมา
+                for (const product in globalS4Questions) {
+                    const data = globalS4Questions[product] || [];
+                    const qTexts = data.map(q => q.q_text);
+                    const trigger = data.find(q => q.q_text.includes('โรคสำคัญ') || q.is_yes_trigger); 
+                    
+                    globalS4Questions[product] = qTexts;
+                    globalS4Questions[product].selectedDisease = trigger ? {
+                        disease_name: trigger.q_text.split(':')[0],
+                        yes_trigger_url: trigger.yes_trigger_url
+                    } : {};
+                }
+
+
+                window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
+                
+                // Preload Critical Audio (เลือก Health เป็นตัวอย่างในการ Preload เพื่อความเร็ว)
+                preloadCriticalAudio('Health'); 
 
                 setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 500);
                 return true; 
@@ -378,16 +409,13 @@
             }
         }
 
-        const preloadCriticalAudio = function() {
-            // ดึง URL ที่ต้องการ Preload จาก Global Stores สำหรับ Product ที่เลือกไว้ ('Health')
-            const product = selectedProductType; 
+        const preloadCriticalAudio = function(product) {
+            // ดึง URL ที่ต้องการ Preload จาก Global Stores สำหรับ Product ที่ระบุ
             
             const s1Urls = (globalS1Files[product] || []).map(f => f.audio_url); 
             const s2Urls = (globalS2Files[product] || []).map(f => f.audio_url); 
             const s3Urls = (globalS3Files[product] || []).map(f => f.audio_url); 
             
-            // ดึงข้อมูล S4 และ S5 ของ Product 'Health'
-            const s4Data = globalS4Questions[product] || [];
             const selectedDiseaseData = globalS4Questions[product]?.selectedDisease || {};
             const s4FollowUpRepliesData = globalS4FollowUpReplies[product] || [];
             const s5StepsData = globalS5Steps[product] || [];
@@ -401,7 +429,8 @@
 
             const allUrls = [...s1Urls, ...s2Urls, ...s3Urls, ...s4Urls, ...s5Urls];
             
-            console.log(`Preloading ${allUrls.length} customer audio files...`);
+            // ... (Preload Logic remains the same) ...
+            console.log(`Preloading ${allUrls.length} customer audio files for ${product}...`);
 
             allUrls.forEach(url => {
                 if (url && !audioCache[url]) {
@@ -415,6 +444,7 @@
         }
 
         const getCachedAudioElement = function(url, fallbackToNew = true) {
+            // ... (Cache logic remains the same) ...
             if (audioCache[url]) {
                 const cachedAudio = audioCache[url].cloneNode(true);
                 cachedAudio.currentTime = 0;
@@ -456,7 +486,6 @@
             // NEW: กรองตาม Product Type ที่ถูกกำหนดไว้
             const currentS4Questions = globalS4Questions[selectedProductType] || [];
             const currentS4FollowUpNames = globalS4FollowUpNames[selectedProductType] || [];
-            const selectedDiseaseData = globalS4Questions[selectedProductType]?.selectedDisease || {};
 
             const healthQuestionDisplay = document.getElementById('healthQuestionDisplay');
             if (isFollowUpMode) {
@@ -496,7 +525,7 @@
                 window.stepList.appendChild(li);
             });
         }
-
+        // ... (updateStepHighlight and generateCertificate remain the same) ...
         const updateStepHighlight = function(currentStep) {
             document.querySelectorAll('#stepList li').forEach(li => {
                 li.style.fontWeight = 'normal';
@@ -522,7 +551,6 @@
             }
         }
 
-
         // --- BATCH UPLOAD Logic (Store to Array) ---
         const storeRecording = function(audioBlob, part, qNum, qText, customerAudioUrl = 'N/A') {
             allRecordings.push({ audioBlob, part, qNum, qText, customerAudioUrl });
@@ -547,11 +575,10 @@
             }
             
             window.loadingOverlay.style.display = "flex";
-            // ใช้ค่าที่กำหนดไว้ใน startTest
             const userName = window.inputUserName.value.trim() || `Anon User`; 
             const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const group = window.inputUserGroup.value.trim();
-            const insuranceType = selectedProductType; // ใช้ค่าคงที่ 'Health'
+            const insuranceType = selectedProductType; // 👈 ใช้ Product Type ที่เลือก
             
             let successfulUploads = 0;
 
@@ -602,7 +629,7 @@
                                 duration_seconds: audioBlob.size > 0 ? (audioBlob.size / 100000) : 0,
                                 user_group: group,
                                 customer_audio_url: customerAudioUrl,
-                                insurance_type: insuranceType // 👈 ใช้ค่าคงที่ 'Health'
+                                insurance_type: insuranceType // 👈 ใช้ Product Type ที่เลือก
                             }
                         ]);
                     if (insertError) { throw insertError; }
@@ -629,7 +656,7 @@
             setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 1500);
         }
         
-        // --- Main Recording Logic (Remains the same, but uses fixed S4/S5 logic) ---
+        // --- Main Recording Logic (Remains the same) ---
         const toggleRecording = async function(type) {
             let statusElement, buttonElement, nextAutoAction, originalButtonText;
             let part, qNum, qText, chunks = [];
@@ -724,7 +751,6 @@
             }
             
             if (!buttonElement || !statusElement) { return; }
-            // ... (rest of recording logic remains the same) ...
             
             if (!mediaRecorder || mediaRecorder.state === "inactive") {
                 // START LOGIC
@@ -788,7 +814,7 @@
             }
         }
         
-        // --- Section 1 Functions (ใช้ selectedRandomFiles ที่สร้างจาก globalS1Files) ---
+        // --- Section 1 Functions (S1-S5 flow logic remains the same, but uses selectedProductType for filtering) ---
         const endTurn = function() {
             if (turn < maxTurns) { 
                 
@@ -926,7 +952,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             if (!selectedFile) {
                 console.error("Missing S2 audio file for index:", qRound);
-                window.s2StatusElement.textContent = "❌ ไม่พบไฟล์เสียงลูกค้าสำหรับคำถามนี้";
+                window.s2StatusElement.textContent = "❌ ไม่พบไฟล์เสียงลูกค้าสำหรับคำถามนี้ (Product: " + selectedProductType + ")";
                 return;
             }
             
@@ -1004,7 +1030,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             if (!selectedFile) {
                 console.error("Missing S3 audio file for index:", cRound);
-                window.s3StatusElement.textContent = "❌ ไม่พบไฟล์เสียงลูกค้าสำหรับข้อโต้แย้งนี้";
+                window.s3StatusElement.textContent = "❌ ไม่พบไฟล์เสียงลูกค้าสำหรับข้อโต้แย้งนี้ (Product: " + selectedProductType + ")";
                 return;
             }
             
@@ -1164,7 +1190,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
             if (!customerReplyUrl) {
                 console.error("Missing S4 Follow-up audio file for step:", followUpStep);
-                window.hStatusElement.textContent = "❌ ไม่พบไฟล์เสียงตอบกลับการซักประวัติ";
+                window.hStatusElement.textContent = "❌ ไม่พบไฟล์เสียงตอบกลับการซักประวัติ (Product: " + selectedProductType + ")";
                 return;
             }
 
@@ -1217,7 +1243,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                     const nextFName = nextFNameData ? nextFNameData.step_name : 'คำถามซักประวัติ';
                     
                     window.hStatusElement.textContent = `🎤 พร้อมบันทึกคำถามซักประวัติ Q${followUpStep} (${nextFName})`;
-                    window.followUpQBtn.textContent = `🎙️ บันทึกคำถามซักประวัติ Q${followUpStep}`;
+                    window.followUpQBtn.textContent = `🎙️ บันทึกคำถามซักประวัติ Q${followUpUp}`;
                     window.followUpQBtn.disabled = false;
                 }
             };
@@ -1267,7 +1293,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             if (!selectedFile) {
                 console.error("Missing S5 audio file for step:", aRound);
-                window.aStatusElement.textContent = "❌ ไม่พบไฟล์เสียงตอบกลับลงทะเบียน";
+                window.aStatusElement.textContent = "❌ ไม่พบไฟล์เสียงตอบกลับลงทะเบียน (Product: " + selectedProductType + ")";
                 return;
             }
 
@@ -1306,6 +1332,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                 window.aRoundSpan.textContent = aRound; 
                 updateStepHighlight(aRound); 
 
+                const s5StepsForProduct = globalS5Steps[selectedProductType] || [];
                 const nextStep = s5StepsForProduct.find(s => s.step_index === aRound);
                 const nextStepName = nextStep?.step_name || 'ขั้นตอนลงทะเบียน';
                 
@@ -1317,8 +1344,15 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
         // --- Final Save Function (Initiates Batch Upload) ---
         const saveAllRecordings = function() {
-            // ไม่ต้องตรวจสอบ Input Name/Group เพราะถูกกำหนดค่าไว้ใน startTest แล้ว
+            const userName = window.inputUserName.value.trim();
+            const userGroup = window.inputUserGroup.value;
+            const productType = window.inputProductType.value;
 
+            if (!userName || !userGroup || !productType) {
+                 alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนทำการบันทึกเสร็จสิ้น");
+                 return;
+            }
+            
             window.finalSaveBtn.disabled = true;
             window.finalSaveBtn.textContent = "⏳ กำลังเริ่มอัปโหลดไฟล์เสียงทั้งหมด...";
             
@@ -1335,13 +1369,12 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             }
             currentUserId = userId;
             
-            // 2. DOM Element Assignments (Sections)
+            // 2. DOM Element Assignments (All elements are visible again)
             window.registrationSection = document.getElementById("registrationSection");
             window.testSection = document.getElementById("testSection");
             window.startTestBtn = document.getElementById("startTestBtn");
-            
-            // 👈 NEW: กำหนด Element เสมือนจริงสำหรับ User Info เพื่อให้ Logic การบันทึกทำงานได้
             window.inputUserName = document.getElementById('inputUserName'); 
+            window.inputProductType = document.getElementById('inputProductType'); 
             window.inputUserGroup = document.getElementById('inputUserGroup'); 
 
             window.loadingOverlay = document.getElementById("loadingOverlay");
@@ -1449,20 +1482,30 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             lastCustomerAudioUrl = 'N/A';
         }
 
-        // O. ปรับปรุง startTest ให้ใช้ globalConfig และกำหนดค่าคงที่
+        // O. ปรับปรุง startTest ให้ใช้ globalConfig และกำหนดค่า Product Type ที่เลือก
         const startTest = function() {
+            const userName = window.inputUserName.value.trim();
+            const productType = window.inputProductType.value;
+            const userGroup = window.inputUserGroup.value;
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const config = globalConfig[selectedDifficulty];
 
+            if (!userName || !userGroup || !productType) {
+                alert("กรุณากรอกชื่อ/รหัสพนักงาน เลือกแบบประกัน และเลือกกลุ่มผู้เข้าทำแบบทดสอบก่อนเริ่มทำแบบทดสอบ");
+                if (!userName) window.inputUserName.focus();
+                else if (!productType) window.inputProductType.focus();
+                else window.inputUserGroup.focus();
+                return;
+            }
+            
             if (!config) {
                 alert(`ไม่พบการตั้งค่าสำหรับระดับความยาก "${selectedDifficulty}" ในฐานข้อมูล`);
                 return;
             }
 
-            // FIX: กำหนดค่าคงที่เพื่อให้ logic การบันทึกและดึงข้อมูลทำงานได้
-            window.inputUserName.value = "User ID: " + currentUserId; 
-            window.inputUserGroup.value = userGroup; 
-            // selectedProductType ถูกกำหนดไว้ใน Global State แล้ว ('Health')
+            // กำหนด Global State ตามที่ผู้ใช้เลือก
+            selectedProductType = productType;
+            userGroup = userGroup;
 
             maxTurns = config.S1;
             maxQ = config.S2;
@@ -1486,6 +1529,14 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             document.getElementById('section5Div').style.display = 'none';
 
             lastCustomerAudioUrl = 'S1 Initial Greeting (No Customer Audio)';
+
+            // ตรวจสอบว่ามีข้อมูลสำหรับ Product Type นี้หรือไม่ก่อนเริ่ม
+            if (!globalS1Files[selectedProductType] || globalS1Files[selectedProductType].length === 0) {
+                 alert(`❌ ไม่พบข้อมูลไฟล์เสียงสำหรับ Product Type "${selectedProductType}" ในฐานข้อมูล กรุณาตรวจสอบการตั้งค่า Supabase`);
+                 window.registrationSection.style.display = 'block';
+                 window.testSection.style.display = 'none';
+                 return;
+            }
 
             prepareTurnFiles(); // ใช้ globalS1Files ภายใน
             window.recordBtn.disabled = false;
