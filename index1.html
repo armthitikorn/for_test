@@ -250,7 +250,50 @@
         
         let allRecordings = []; 
         let lastCustomerAudioUrl = 'N/A';
+        // --- แทรกโค้ดชุดนี้ลงไปเพื่อแก้ปัญหา undefined ---
         
+        // ฟังก์ชันสำหรับจับคู่ตัวแปร JS กับ ID ใน HTML
+        const initDOM = function() {
+            // จับคู่ Status Text
+            window.s1StatusElement = document.getElementById('status');
+            window.s2StatusElement = document.getElementById('qStatus');
+            window.s3StatusElement = document.getElementById('cStatus');
+            window.hStatusElement = document.getElementById('hStatus');
+            window.aStatusElement = document.getElementById('aStatus');
+            window.pitchStatusElement = document.getElementById('pitchStatus');
+
+            // จับคู่ตัวเลข Counters
+            window.turnSpan = document.getElementById('turnSpan');
+            window.maxTurnSpan = document.getElementById('maxTurnSpan');
+            window.qRoundSpan = document.getElementById('qRound');
+            window.maxQSpan = document.getElementById('maxQSpan');
+            window.cRoundSpan = document.getElementById('cRound');
+            window.maxCSpan = document.getElementById('maxCSpan');
+            window.hQName = document.getElementById('hQName');
+            window.aRoundSpan = document.getElementById('aRound');
+            window.maxASpan = document.getElementById('maxASpan');
+
+            // จับคู่ปุ่ม
+            window.recordBtn = document.getElementById('recordBtn');
+            window.pitchRecordBtn = document.getElementById('pitchRecordBtn');
+            window.answerBtn = document.getElementById('answerBtn');
+            window.closeBtn = document.getElementById('closeBtn');
+            window.replyBtn = document.getElementById('replyBtn');
+            window.answerHBtn = document.getElementById('answerHBtn');
+            window.answerABtn = document.getElementById('answerABtn');
+            
+            // ปุ่ม Next (สำคัญ)
+            window.nextRoundBtn = document.getElementById('nextRoundBtn');
+            window.nextSection2Btn = document.getElementById('nextSection2Btn');
+            window.nextSection3Btn = document.getElementById('nextSection3Btn');
+            window.nextSection4Btn = document.getElementById('nextSection4Btn');
+            window.nextSection5Btn = document.getElementById('nextSection5Btn');
+        }
+
+        // เรียกใช้งานทันทีเพื่อให้ตัวแปรมีค่า
+        initDOM();
+        
+        // --------------------------------------------------
         // Counters
         let turn = 0, qRound = 0, cRound = 0, currentHIndex = 0, aRound = 0;
         let isFollowUpMode = false, followUpStep = 0;
