@@ -279,7 +279,7 @@
         // 🚨 GLOBAL STATE FOR CUSTOMER AUDIO URL & USER GROUP / PRODUCT
         let lastCustomerAudioUrl = 'N/A';
         let userGroup = ''; 
-        let selectedProductType = ''; // 👈 Global LET variable
+        let selectedProductType = ''; // 👈 Global LET variable (จะถูกกำหนดค่าเมื่อกด Start)
         
         // Round Counters 
         let turn = 0;
@@ -352,6 +352,7 @@
                     
                     data.forEach(item => {
                         const productArray = item.product_type || [];
+                        // 🚨 ใช้ Product ตัวแรกเป็น Key
                         const product = productArray[0] ? productArray[0].toLowerCase() : 'unknown'; 
                         
                         if (product) {
@@ -377,7 +378,6 @@
                 for (const product in globalS4Questions) {
                     const data = globalS4Questions[product] || [];
                     const qTexts = data.map(q => q.q_text);
-                    // ค้นหาแถวที่มี is_yes_trigger เป็น TRUE
                     const trigger = data.find(q => q.is_yes_trigger) || {}; 
                     
                     globalS4Questions[product] = qTexts; // เก็บ Q Text เป็น Array หลัก
@@ -658,7 +658,6 @@
             const currentS4FollowUpNames = globalS4FollowUpNames[selectedProductType] || [];
             const s5StepsForProduct = globalS5Steps[selectedProductType] || [];
 
-            // Helper for QText (Handles null/undefined gracefully)
             const getQText = (arr, index, fallback) => (arr[index] && arr[index].q_text) || arr[index] || fallback; 
 
             if (type === 1) { 
@@ -1068,7 +1067,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const originalMaxH = globalConfig[selectedDifficulty]?.S4 || 5;
             
-            // ตั้ง maxH: ถ้าเป็น health ใช้ค่า config เดิม (5), ถ้าไม่ใช่ ใช้ 1
+            // ตั้ง maxH: ถ้าเป็น health ใช้ค่า config เดิม (5), ถ้าไม่ใช่ (saving1, saving2, retirement) ใช้ 1
             maxH = isHealthProduct ? originalMaxH : 1; 
 
             // 2. จัดการ Display และ State
@@ -1255,7 +1254,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
 
         // --- Section 5 Functions (Registration - Sequential Flow) ---
         
-        // 🚨 แก้ไข Reference Error: initSection5 ต้องอยู่ก่อนถูกเรียกใช้ใน Event Listener
+        // 🚨 initSection5: ถูกแก้ไขให้เป็นฟังก์ชันปกติเพื่อแก้ ReferenceError
         const initSection5 = function() {
             document.getElementById('section1Div').style.display = 'none';
             document.getElementById('section1_5Div').style.display = 'none';
@@ -1376,7 +1375,6 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             window.testSection = document.getElementById("testSection");
             window.startTestBtn = document.getElementById("startTestBtn");
             window.inputUserName = document.getElementById('inputUserName'); 
-            // 💡 เพิ่ม Input Product Type กลับมา
             window.inputProductType = document.getElementById('inputProductType'); 
             window.inputUserGroup = document.getElementById('inputUserGroup'); 
 
@@ -1385,7 +1383,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             window.uploadProgressBar = document.getElementById("uploadProgressBar");
             window.certBtn = document.getElementById("certBtn");
 
-            // Section 1-5 (Assign elements)
+            // Section 1
             window.section1Div = document.getElementById("section1Div");
             window.turnSpan = document.getElementById("turnSpan");
             window.maxTurnSpan = document.getElementById("maxTurnSpan");
@@ -1394,11 +1392,13 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             window.nextRoundBtn = document.getElementById("nextRoundBtn");
             window.customerAudio = document.getElementById("customerAudio");
             
+            // Section 1.5
             window.section1_5Div = document.getElementById("section1_5Div");
             window.pitchRecordBtn = document.getElementById("pitchRecordBtn");
             window.nextSection2Btn = document.getElementById("nextSection2Btn");
             window.pitchStatusElement = document.getElementById("pitchStatus");
             
+            // Section 2
             window.section2Div = document.getElementById("section2Div");
             window.qRoundSpan = document.getElementById("qRound");
             window.maxQSpan = document.getElementById("maxQSpan");
@@ -1408,6 +1408,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             window.nextSection3Btn = document.getElementById("nextSection3Btn");
             window.questionAudio = document.getElementById("questionAudio");
             
+            // Section 3
             window.section3Div = document.getElementById("section3Div");
             window.cRoundSpan = document.getElementById("cRound");
             window.maxCSpan = document.getElementById("maxCSpan");
@@ -1417,6 +1418,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             window.objectionAudio = document.getElementById("objectionAudio");
             window.nextSection4Btn = document.getElementById("nextSection4Btn");
             
+            // Section 4
             window.section4Div = document.getElementById("section4Div");
             window.hQName = document.getElementById("hQName");
             window.hStatusElement = document.getElementById("hStatus");
@@ -1424,7 +1426,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             window.nextSection5Btn = document.getElementById("nextSection5Btn");
             window.healthAudio = document.getElementById("healthAudio");
             
-            // Dynamic Button for S4 (ต้องสร้างขึ้นใหม่ เพราะไม่อยู่ใน DOM ต้นฉบับของ index3)
+            // Dynamic Button for S4
             window.followUpQBtn = document.createElement('button'); 
             window.followUpQBtn.id = 'followUpQBtn';
             window.followUpQBtn.style.display = 'none';
@@ -1438,6 +1440,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                  parentContainer.insertBefore(window.followUpQBtn, window.nextSection5Btn);
             }
             
+            // Section 5
             window.section5Div = document.getElementById("section5Div");
             window.aRoundSpan = document.getElementById("aRound");
             window.maxASpan = document.getElementById("maxASpan");
