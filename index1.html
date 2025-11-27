@@ -642,35 +642,65 @@
                 });
             }
         });
-        // S3 Logic
-        const playS3Obj = () => {
-            // จบสคริปต์ปิดการขาย -> เล่น Objection ข้อที่ 1
-            if(cRound < maxC) {
-                playNextObjection();
-            }
-        }
-        const startNextCloseRound = () => {
-            // จบการตอบ Objection -> เตรียมเล่น Objection ข้อถัดไป
-            if (cRound < maxC) {
-                setTimeout(playNextObjection, 500);
-            } else {
-                window.s3StatusElement.textContent = "🎉 จบบทที่ 3";
-                window.nextSection4Btn.disabled = false;
+        
+        // --- แก้ไข S3 Logic: ให้เล่น Loop อัตโนมัติและแก้บั๊กหาไฟล์ไม่เจอ ---
+        const playSequentialObjectionAuto = function() {
+            // 1. เช็คว่าจบหรือยัง
+            if (cRound >= maxC) {
+                window.s3StatusElement.textContent = "🎉 เสร็จสิ้นช่วงที่ 3! กรุณากด 'จบบทที่ 3' เพื่อไปช่วงที่ 4";
                 window.replyBtn.disabled = true;
+                window.closeBtn.style.display = 'none'; 
+                window.nextSection4Btn.disabled = false; 
+                return;
             }
-        }
-        const playNextObjection = () => {
+            
             cRound++;
             window.cRoundSpan.textContent = cRound;
-            const s3Obj = globalS3Files.find(f => f.ob_index === cRound);
-            const file = s3Obj ? s3Obj.audio_url : null;
+
+            // ซ่อนปุ่มปิดการขายเมื่อเข้าสู่ Loop ข้อโต้แย้ง
+            if(window.closeBtn) window.closeBtn.style.display = 'none';
             
-            playAudio('objectionAudio', file, window.s3StatusElement, () => {
-                lastCustomerAudioUrl = file;
+            // 2. Debug: ดูว่ากำลังหาอะไร
+            console.log(`🔍 S3: กำลังหา Objection ข้อที่ ${cRound} (จากทั้งหมด ${globalS3Files.length} ไฟล์)`);
+
+            // 3. Fix: ใช้ == เพื่อรองรับทั้งตัวเลขและตัวหนังสือ (เผื่อ Database ส่งมาต่างกัน)
+            const s3File = globalS3Files.find(f => f.ob_index == cRound);
+            const selectedFile = s3File ? s3File.audio_url : null;
+            
+            if (!selectedFile) {
+                console.error("❌ Missing S3 audio file for index:", cRound);
+                console.log("📂 ข้อมูล S3 ที่มี:", globalS3Files);
+                window.s3StatusElement.textContent = `❌ ไม่พบไฟล์เสียงข้อโต้แย้งที่ ${cRound} (เช็ค Database ตาราง objections_s3)`;
+                alert(`⚠️ หาไฟล์เสียง S3 ข้อที่ ${cRound} ไม่เจอ!\nกรุณาเช็คตาราง objections_s3 ว่ามี ob_index นี้และ product_type ถูกต้องหรือไม่`);
+                return;
+            }
+            
+            // 4. เล่นเสียง
+            window.s3StatusElement.textContent = "⏳ กำลังโหลดข้อโต้แย้งลูกค้า...";
+            const audioEl = getCachedAudioElement(selectedFile, true);
+            window.objectionAudio = audioEl;
+
+            const attemptPlay = () => {
+                audioEl.play().catch(error => {
+                    window.s3StatusElement.textContent = `❌ เล่นอัตโนมัติถูกบล็อก: ${error.message}. กรุณากดปุ่ม "🎙️ บันทึกเสียงตอบข้อโต้แย้ง" อีกครั้ง`;
+                    window.replyBtn.disabled = false;
+                    audioEl.onended = null;
+                });
+                window.s3StatusElement.textContent = `🔊 กำลังเล่นข้อโต้แย้งลูกค้า (รอบที่ ${cRound}/${maxC})...`; 
+            };
+            
+            audioEl.onloadeddata = attemptPlay;
+            if (audioEl.readyState >= 2) { 
+                attemptPlay();
+            }
+
+            audioEl.onended = () => {
+                lastCustomerAudioUrl = selectedFile;
+                window.s3StatusElement.textContent = "🎤 พร้อมบันทึกเสียงตอบกลับข้อโต้แย้ง";
                 window.replyBtn.disabled = false;
-                window.closeBtn.disabled = true;
-                window.s3StatusElement.textContent = `🎤 เชิญบันทึกการตอบข้อโต้แย้งที่ ${cRound}`;
-            });
+                // อัปเดตข้อความปุ่มให้รู้ว่าเป็นข้อไหน
+                window.replyBtn.textContent = `🎙️ ${cRound}. บันทึกเสียงตอบข้อโต้แย้ง`;
+            };
         }
 
         // S4 Logic (Health)
