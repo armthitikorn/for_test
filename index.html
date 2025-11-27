@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (หลาย Product)</title>
+    <title>E-Simulator Roleplay (รองรับหลาย Product)</title>
     
     <style>
-        /* 1. สไตล์ที่ถูกปรับขนาด (NEW) */
+        /* (Styles remain the same) */
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { 
             font-family: 'Sarabun', sans-serif;
@@ -53,7 +53,6 @@
         #finalSaveBtn { background-color: #007bff; color: white; font-weight: bold; }
         #finalSaveBtn.done { background-color: #28a745; }
 
-        /* Responsive Form Control */
         .form-control {
             padding: 10px;
             border: 1px solid #ccc;
@@ -66,7 +65,6 @@
             font-size: 16px;
         }
 
-        /* Difficulty Radio Styles */
         .difficulty-option {
             display: inline-block;
             margin: 8px;
@@ -85,7 +83,6 @@
         }
         input[type="radio"] { display: none; }
         
-        /* Loading Overlay */
         #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); color: white; display: none; 
@@ -97,7 +94,6 @@
         .progress { width: 80%; max-width: 400px; margin-top: 20px; height: 15px; background-color: #e9ecef; border-radius: 0.25rem; overflow: hidden; }
         .progress-bar { height: 100%; background-color: #007bff; transition: width 0.6s ease; }
         
-        /* Certificate Style */
         #certificate { border: 5px solid #333; padding: 40px; width: 90%; max-width: 800px; margin: 40px auto; text-align: center; display: none; }
 
         @media (max-width: 600px) {
@@ -129,6 +125,7 @@
         
         <div id="registrationSection">
             <h2 style="color: #333;">📝 หน้าลงทะเบียนและตั้งค่าแบบทดสอบ</h2>
+            
             <div style="margin-bottom: 20px;">
                 <label for="inputUserName" style="font-weight: bold; display: block; margin-bottom: 10px;">
                     ชื่อ-นามสกุล/รหัสพนักงาน:
@@ -144,10 +141,10 @@
                     <option value="">-- กรุณาเลือกแบบประกัน --</option>
                     <option value="health">ประกันสุขภาพ (Health)</option>
                     <option value="saving1">ประกันสะสมทรัพย์ 1 (Saving1)</option>
-                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option> 
                     <option value="retirement">ประกันบำนาญ (Retirement)</option>
                 </select>
             </div>
+            
             <div style="margin-bottom: 20px;">
                 <label for="inputUserGroup" style="font-weight: bold; display: block; margin-bottom: 10px;">
                     กลุ่มผู้เข้าทำแบบทดสอบ:
@@ -263,6 +260,7 @@
         </div>
     </div>
 
+// ... (โค้ด HTML/CSS) ...
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
@@ -279,10 +277,9 @@
         
         let allRecordings = []; 
         
-        // 🚨 GLOBAL STATE FOR CUSTOMER AUDIO URL & USER GROUP / PRODUCT
         let lastCustomerAudioUrl = 'N/A';
         let userGroup = ''; 
-        let selectedProductType = ''; // 👈 Global LET variable
+        let selectedProductType = ''; 
         
         // Round Counters 
         let turn = 0;
@@ -379,10 +376,9 @@
                 for (const product in globalS4Questions) {
                     const data = globalS4Questions[product] || [];
                     const qTexts = data.map(q => q.q_text);
-                    // ค้นหาแถวที่มี is_yes_trigger เป็น TRUE
                     const trigger = data.find(q => q.is_yes_trigger) || {}; 
                     
-                    globalS4Questions[product] = qTexts; // เก็บ Q Text เป็น Array หลัก
+                    globalS4Questions[product] = qTexts; 
                     globalS4Questions[product].selectedDisease = trigger ? {
                         disease_name: trigger.disease_name || trigger.q_text.split(':')[0] || 'โรคสำคัญ', 
                         yes_trigger_url: trigger.yes_trigger_url
@@ -391,6 +387,9 @@
 
                 window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
                 
+                // Preload Critical Audio (ใช้ 'health' เป็น Product ตัวอย่างในการ Preload)
+                preloadCriticalAudio('health'); 
+
                 setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 500);
                 return true; 
                 
@@ -448,18 +447,35 @@
             const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const maxTurns = globalConfig[selectedDifficulty]?.S1 || 5; 
 
+            // 1. ดึงไฟล์ของ Product ที่เลือกเท่านั้น
             const s1FilesForProduct = globalS1Files[selectedProductType] || [];
 
-            const Q6_FINALE_FILE = s1FilesForProduct.find(f => f.is_finale);
+            // 2. หาไฟล์สุดท้าย: โดยใช้ is_finale เป็น TRUE เสมอ
+            const Q6_FINALE_FILE = s1FilesForProduct.find(f => f.is_finale); 
+            
+            // 3. กรองไฟล์ที่ไม่ใช่ไฟล์สุดท้าย
             const availableFiles = s1FilesForProduct.filter(f => !f.is_finale);
             
-            // ใช้ slice เพื่อจำกัดจำนวนไฟล์ตาม difficulty
+            // 4. เลือกไฟล์ก่อนหน้าตามจำนวน maxTurns - 1
             const precedingFiles = availableFiles.slice(0, maxTurns - 1).map(f => f.audio_url); 
             
             selectedRandomFiles = precedingFiles;
             
+            // 5. เพิ่มไฟล์สุดท้าย (Q6_FINALE_FILE) เข้าไปในลำดับสุดท้าย
             if (maxTurns > 0 && Q6_FINALE_FILE) {
                  selectedRandomFiles.push(Q6_FINALE_FILE.audio_url); 
+            } else if (maxTurns > 0 && !Q6_FINALE_FILE) {
+                // 🚨 SAFETY CHECK
+                 console.error(`[DATA ERROR] Product: ${selectedProductType} ต้องการ ${maxTurns} เทิร์น แต่ไม่พบไฟล์ is_finale: TRUE ในตาราง customer_replies_s1!`);
+                 window.s1StatusElement.textContent = `❌ DATA ERROR: ไม่พบไฟล์สุดท้าย (is_finale: TRUE) สำหรับ ${selectedProductType}. โปรดตรวจสอบตาราง!`;
+                 window.recordBtn.disabled = true;
+                 window.nextRoundBtn.disabled = true;
+                 return;
+            }
+            
+            // 🚨 SAFETY CHECK 2: ตรวจสอบจำนวนไฟล์ที่เลือก
+            if (selectedRandomFiles.length < maxTurns) {
+                console.warn(`[DATA WARNING] Product ${selectedProductType} requires ${maxTurns} turns but only found ${selectedRandomFiles.length} files. Check available files (is_finale: FALSE) + the finale file.`);
             }
             
             console.log(`S1 Turn Files (${maxTurns} turns, Product: ${selectedProductType}):`, selectedRandomFiles);
@@ -807,7 +823,7 @@
                     if (isFinalCustomerTurn) window.nextRoundBtn.disabled = false;
                     return;
                 }
-                
+
                 window.s1StatusElement.textContent = `⏳ กำลังโหลดเสียงลูกค้า...`;
                 const audioEl = getCachedAudioElement(fileToPlay, true);
                 window.customerAudio = audioEl;
@@ -1493,7 +1509,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             lastCustomerAudioUrl = 'N/A';
         }
 
-        // O. ปรับปรุง startTest ให้ใช้ globalConfig
+        // O. ปรับปรุง startTest
         const startTest = function() {
             const userName = window.inputUserName.value.trim();
             const inputProductType = window.inputProductType.value; 
@@ -1502,7 +1518,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             const config = globalConfig[selectedDifficulty];
 
             if (!userName || !userGroup || !inputProductType) {
-                alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนเริ่มทำแบบทดสอบ");
+                alert("กรุณากรอกชื่อ/รหัสพนักงาน เลือกแบบประกัน และเลือกกลุ่มผู้เข้าทำแบบทดสอบก่อนเริ่มทำแบบทดสอบ");
                 if (!userName) window.inputUserName.focus();
                 else if (!inputProductType) window.inputProductType.focus();
                 else window.inputUserGroup.focus();
@@ -1513,7 +1529,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                 alert(`ไม่พบการตั้งค่าสำหรับระดับความยาก "${selectedDifficulty}" ในฐานข้อมูล`);
                 return;
             }
-            
+
             // ⬇️ กำหนดค่าให้กับ Global 'let' variables ⬇️
             selectedProductType = inputProductType;
             userGroup = userGroup;
@@ -1530,7 +1546,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             maxTurns = config.S1;
             maxQ = config.S2;
             maxC = config.S3;
-            maxH = config.S4;
+            maxH = config.S4; 
             maxA = config.S5; 
             maxFollowUp = 5; 
 
@@ -1552,7 +1568,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             lastCustomerAudioUrl = 'S1 Initial Greeting (No Customer Audio)';
 
             preloadCriticalAudio(selectedProductType); // Preload เฉพาะ Product ที่เลือก
-            prepareTurnFiles();
+            prepareTurnFiles(); 
             window.recordBtn.disabled = false;
             window.s1StatusElement.textContent = `🎤 พร้อมบันทึกบทพูดเปิดตัว (เทิร์นที่ 1/${maxTurns})`;
         }
