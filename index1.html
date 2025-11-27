@@ -332,70 +332,80 @@
                     };
                 });
                 
-                // 2. ดึง S1 (customer_replies_s1)
-                window.loadingText.textContent = `กำลังดึงข้อมูลบทโต้ตอบต้นสาย...`;
-                const { data: s1Data, error: s1Error } = await window.supabase
-                    .from('customer_replies_s1')
-                    .select('turn_index, audio_url, is_finale')
-                    .order('turn_index', { ascending: true });
-                if (s1Error) throw s1Error;
-                globalS1Files = s1Data;
-                
-                // 3. ดึง S2 (questions_s2)
-                window.loadingText.textContent = `กำลังดึงข้อมูลคำถามลูกค้า S2...`;
-                const { data: s2Data, error: s2Error } = await window.supabase
-                    .from('questions_s2')
-                    .select('q_index, audio_url')
-                    .order('q_index', { ascending: true });
-                if (s2Error) throw s2Error;
-                globalS2Files = s2Data;
+// กำหนดตัวแปรไว้เผื่อต้องการเปลี่ยน Product Type ในอนาคต
+const targetProductType = 'health'; 
 
-                // 4. ดึง S3 (objections_s3)
-                window.loadingText.textContent = `กำลังดึงข้อมูลข้อโต้แย้ง S3...`;
-                const { data: s3Data, error: s3Error } = await window.supabase
-                    .from('objections_s3')
-                    .select('ob_index, audio_url')
-                    .order('ob_index', { ascending: true });
-                if (s3Error) throw s3Error;
-                globalS3Files = s3Data;
-                
-                // 5. ดึง S4 (health_questions_s4 - คำถามหลัก)
-                window.loadingText.textContent = `กำลังดึงข้อมูลคำถามสุขภาพ S4...`;
-                const { data: s4Data, error: s4Error } = await window.supabase
-                    .from('health_questions_s4')
-                    .select('q_index, q_text, is_yes_trigger, yes_trigger_url') // สมมติว่าเพิ่ม yes_trigger_url ในตาราง health_questions_s4
-                    .order('q_index', { ascending: true });
-                if (s4Error) throw s4Error;
-                
-                globalS4Questions = s4Data.map(q => q.q_text);
-                selectedDisease = s4Data.find(q => q.is_yes_trigger) || {};
-                
-                // 6. ดึง S4 Follow-up Names
-                window.loadingText.textContent = `กำลังดึงข้อมูลชื่อคำถามซักประวัติ S4...`;
-                 const { data: s4FNamesData, error: s4FNamesError } = await window.supabase
-                    .from('s4_follow_up_names')
-                    .select('step_index, step_name')
-                    .order('step_index', { ascending: true });
-                if (s4FNamesError) throw s4FNamesError;
-                globalS4FollowUpNames = s4FNamesData;
-                
-                // 7. ดึง S4 Follow-up Replies
-                window.loadingText.textContent = `กำลังดึงข้อมูลคำตอบซักประวัติ S4...`;
-                 const { data: s4FRepliesData, error: s4FRepliesError } = await window.supabase
-                    .from('s4_follow_up_replies')
-                    .select('step_index, customer_audio_url')
-                    .order('step_index', { ascending: true });
-                if (s4FRepliesError) throw s4FRepliesError;
-                globalS4FollowUpReplies = s4FRepliesData;
-                
-                // 8. ดึง S5 (scripts_s5)
-                window.loadingText.textContent = `กำลังดึงข้อมูลขั้นตอนลงทะเบียน S5...`;
-                const { data: s5Data, error: s5Error } = await window.supabase
-                    .from('scripts_s5')
-                    .select('step_index, step_name, customer_audio_url')
-                    .order('step_index', { ascending: true });
-                if (s5Error) throw s5Error;
-                globalS5Steps = s5Data;
+// 2. ดึง S1 (customer_replies_s1)
+window.loadingText.textContent = `กำลังดึงข้อมูลบทโต้ตอบต้นสาย...`;
+const { data: s1Data, error: s1Error } = await window.supabase
+    .from('customer_replies_s1')
+    .select('turn_index, audio_url, is_finale')
+    .eq('product_type', targetProductType) // <--- กรอง S1
+    .order('turn_index', { ascending: true });
+if (s1Error) throw s1Error;
+globalS1Files = s1Data;
+
+// 3. ดึง S2 (questions_s2)
+window.loadingText.textContent = `กำลังดึงข้อมูลคำถามลูกค้า S2...`;
+const { data: s2Data, error: s2Error } = await window.supabase
+    .from('questions_s2')
+    .select('q_index, audio_url')
+    .eq('product_type', targetProductType) // <--- กรอง S2
+    .order('q_index', { ascending: true });
+if (s2Error) throw s2Error;
+globalS2Files = s2Data;
+
+// 4. ดึง S3 (objections_s3)
+window.loadingText.textContent = `กำลังดึงข้อมูลข้อโต้แย้ง S3...`;
+const { data: s3Data, error: s3Error } = await window.supabase
+    .from('objections_s3')
+    .select('ob_index, audio_url')
+    .eq('product_type', targetProductType) // <--- กรอง S3
+    .order('ob_index', { ascending: true });
+if (s3Error) throw s3Error;
+globalS3Files = s3Data;
+
+// 5. ดึง S4 (health_questions_s4 - คำถามหลัก)
+window.loadingText.textContent = `กำลังดึงข้อมูลคำถามสุขภาพ S4...`;
+const { data: s4Data, error: s4Error } = await window.supabase
+    .from('health_questions_s4')
+    .select('q_index, q_text, is_yes_trigger, yes_trigger_url')
+    .eq('product_type', targetProductType) // <--- กรอง S4 Main
+    .order('q_index', { ascending: true });
+if (s4Error) throw s4Error;
+
+globalS4Questions = s4Data.map(q => q.q_text);
+selectedDisease = s4Data.find(q => q.is_yes_trigger) || {};
+
+// 6. ดึง S4 Follow-up Names
+window.loadingText.textContent = `กำลังดึงข้อมูลชื่อคำถามซักประวัติ S4...`;
+const { data: s4FNamesData, error: s4FNamesError } = await window.supabase
+    .from('s4_follow_up_names')
+    .select('step_index, step_name')
+    .eq('product_type', targetProductType) // <--- กรอง S4 Follow-up Names
+    .order('step_index', { ascending: true });
+if (s4FNamesError) throw s4FNamesError;
+globalS4FollowUpNames = s4FNamesData;
+
+// 7. ดึง S4 Follow-up Replies
+window.loadingText.textContent = `กำลังดึงข้อมูลคำตอบซักประวัติ S4...`;
+const { data: s4FRepliesData, error: s4FRepliesError } = await window.supabase
+    .from('s4_follow_up_replies')
+    .select('step_index, customer_audio_url')
+    .eq('product_type', targetProductType) // <--- กรอง S4 Follow-up Replies
+    .order('step_index', { ascending: true });
+if (s4FRepliesError) throw s4FRepliesError;
+globalS4FollowUpReplies = s4FRepliesData;
+
+// 8. ดึง S5 (scripts_s5)
+window.loadingText.textContent = `กำลังดึงข้อมูลขั้นตอนลงทะเบียน S5...`;
+const { data: s5Data, error: s5Error } = await window.supabase
+    .from('scripts_s5')
+    .select('step_index, step_name, customer_audio_url')
+    .eq('product_type', targetProductType) // <--- กรอง S5
+    .order('step_index', { ascending: true });
+if (s5Error) throw s5Error;
+globalS5Steps = s5Data;
 
                 window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
                 
