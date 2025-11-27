@@ -331,8 +331,8 @@
                         S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S4: c.max_s4, S5: c.max_s5
                     };
                 });
-                
-// กำหนดตัวแปรไว้เผื่อต้องการเปลี่ยน Product Type ในอนาคต
+
+// กำหนดตัวแปรไว้แก้ไขง่ายๆ (ไม่ต้องใส่วงเล็บตรงนี้)
 const targetProductType = 'health'; 
 
 // 2. ดึง S1 (customer_replies_s1)
@@ -340,7 +340,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลบ�
 const { data: s1Data, error: s1Error } = await window.supabase
     .from('customer_replies_s1')
     .select('turn_index, audio_url, is_finale')
-    .eq('product_type', targetProductType) // <--- กรอง S1
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains และใส่ [] ครอบตัวแปร
     .order('turn_index', { ascending: true });
 if (s1Error) throw s1Error;
 globalS1Files = s1Data;
@@ -350,7 +350,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลค�
 const { data: s2Data, error: s2Error } = await window.supabase
     .from('questions_s2')
     .select('q_index, audio_url')
-    .eq('product_type', targetProductType) // <--- กรอง S2
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
     .order('q_index', { ascending: true });
 if (s2Error) throw s2Error;
 globalS2Files = s2Data;
@@ -360,7 +360,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลข�
 const { data: s3Data, error: s3Error } = await window.supabase
     .from('objections_s3')
     .select('ob_index, audio_url')
-    .eq('product_type', targetProductType) // <--- กรอง S3
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
     .order('ob_index', { ascending: true });
 if (s3Error) throw s3Error;
 globalS3Files = s3Data;
@@ -370,7 +370,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลค�
 const { data: s4Data, error: s4Error } = await window.supabase
     .from('health_questions_s4')
     .select('q_index, q_text, is_yes_trigger, yes_trigger_url')
-    .eq('product_type', targetProductType) // <--- กรอง S4 Main
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
     .order('q_index', { ascending: true });
 if (s4Error) throw s4Error;
 
@@ -382,7 +382,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลช�
 const { data: s4FNamesData, error: s4FNamesError } = await window.supabase
     .from('s4_follow_up_names')
     .select('step_index, step_name')
-    .eq('product_type', targetProductType) // <--- กรอง S4 Follow-up Names
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
     .order('step_index', { ascending: true });
 if (s4FNamesError) throw s4FNamesError;
 globalS4FollowUpNames = s4FNamesData;
@@ -392,7 +392,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลค�
 const { data: s4FRepliesData, error: s4FRepliesError } = await window.supabase
     .from('s4_follow_up_replies')
     .select('step_index, customer_audio_url')
-    .eq('product_type', targetProductType) // <--- กรอง S4 Follow-up Replies
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
     .order('step_index', { ascending: true });
 if (s4FRepliesError) throw s4FRepliesError;
 globalS4FollowUpReplies = s4FRepliesData;
@@ -402,7 +402,7 @@ window.loadingText.textContent = `กำลังดึงข้อมูลข�
 const { data: s5Data, error: s5Error } = await window.supabase
     .from('scripts_s5')
     .select('step_index, step_name, customer_audio_url')
-    .eq('product_type', targetProductType) // <--- กรอง S5
+    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
     .order('step_index', { ascending: true });
 if (s5Error) throw s5Error;
 globalS5Steps = s5Data;
