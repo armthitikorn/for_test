@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (รองรับหลาย Product)</title>
+    <title>E-Simulator Roleplay (รองรับหลาย Product - FINAL FIX)</title>
     
     <style>
         /* (Styles remain the same) */
@@ -321,7 +321,7 @@
         let audioCache = {};
         let selectedRandomFiles = []; 
         
-        // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase (ปรับปรุงเพื่อดึงทุก Product และจัดการ Array)
+        // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase 
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
             window.loadingText.textContent = `กำลังดึงข้อมูลการตั้งค่าจากฐานข้อมูล...`;
@@ -376,7 +376,8 @@
                 await fetchAndGroup('objections_s3', 'ob_index', globalS3Files, 'ob_index, audio_url, product_type');
                 
                 // 5. ดึง S4 (health_questions_s4 - คำถามหลัก)
-                await fetchAndGroup('health_questions_s4', 'q_index', globalS4Questions, 'q_index, q_text, is_yes_trigger, yes_trigger_url, product_type, disease_name');
+                // 🚨 FIXED: ใช้ Select ที่ไม่มี 'disease_name' เพื่อเลี่ยง 400 Bad Request
+                await fetchAndGroup('health_questions_s4', 'q_index', globalS4Questions, 'q_index, q_text, is_yes_trigger, yes_trigger_url, product_type');
                 
                 // 6. ดึง S4 Follow-up Names
                 await fetchAndGroup('s4_follow_up_names', 'step_index', globalS4FollowUpNames, 'step_index, step_name, product_type');
@@ -396,13 +397,15 @@
                     
                     globalS4Questions[product] = qTexts; // เก็บ Q Text เป็น Array หลัก
                     globalS4Questions[product].selectedDisease = trigger ? {
-                        disease_name: trigger.disease_name || (trigger.q_text ? trigger.q_text.split(':')[0] : 'โรคสำคัญ'), 
+                        // 🚨 ใช้ q_text ในการหาชื่อโรคแทน
+                        disease_name: (trigger.q_text ? trigger.q_text.split(':')[0] : 'โรคสำคัญ').trim(), 
                         yes_trigger_url: trigger.yes_trigger_url
                     } : {};
                 }
 
                 window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
                 
+                // Preload Health files เป็นตัวอย่าง (จะถูกแทนที่ด้วย Product ที่เลือกเมื่อกด Start)
                 preloadCriticalAudio('health'); 
 
                 setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 500);
@@ -410,7 +413,8 @@
                 
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
-                window.loadingText.textContent = `❌ ข้อผิดพลาดในการโหลดข้อมูล: ${error.message}. โปรดตรวจสอบ Supabase Tables`;
+                // 🚨 แสดง Error ที่ชัดเจน
+                window.loadingText.textContent = `❌ ข้อผิดพลาดในการโหลดข้อมูล: ${error.message}. โปรดตรวจสอบ Supabase Tables หรือลองโหลดหน้าใหม่.`;
                 window.startTestBtn.disabled = true;
                 setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 3000);
                 return false;
@@ -939,7 +943,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             alert("จบบทที่ 1.5 แล้ว! เริ่มช่วงที่ 2: ตอบคำถามลูกค้า");
         }
 
-        // I. 🚨 FIXED: playSequentialQuestion ให้ใช้ q_index ในการค้นหา
+        // I. 🚨 FIXED: playSequentialQuestion ให้ใช้ q_index ในการค้นหา (เพื่อแก้ปัญหา S2/Missing file)
         const playSequentialQuestion = function() {
             if (qRound >= maxQ) {
                 window.s2StatusElement.textContent = `🎉 คำถามครบ ${maxQ} ข้อแล้ว!
@@ -953,7 +957,6 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             qRound++;
             window.qRoundSpan.textContent = qRound;
             
-            // 🚨 FIXED: ใช้ .find() ค้นหาจาก q_index โดยตรง (เสถียรกว่า Array Indexing เมื่อมีหลาย Product)
             const s2FilesForProduct = globalS2Files[selectedProductType] || [];
             const s2File = s2FilesForProduct.find(f => f.q_index === qRound); 
             const selectedFile = s2File ? s2File.audio_url : null;
@@ -1032,7 +1035,6 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             
             let selectedFile;
             
-            // 🚨 FIXED: ใช้ .find() ค้นหาจาก ob_index โดยตรง
             const s3FilesForProduct = globalS3Files[selectedProductType] || [];
             const s3File = s3FilesForProduct.find(f => f.ob_index === cRound); 
             selectedFile = s3File ? s3File.audio_url : null;
