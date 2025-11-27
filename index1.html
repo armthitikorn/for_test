@@ -259,8 +259,8 @@
         const DEFAULT_PRODUCT_TAG = 'health'; 
         const CURRENT_PRODUCT_TAG = localStorage.getItem('roleplaySelectedProductTag') || DEFAULT_PRODUCT_TAG;
         
-        // *** FIX: FILTER_TAGS เป็น ['health', 'all'] ตามที่ผู้ใช้แจ้ง ***
-        const FILTER_TAGS = [CURRENT_PRODUCT_TAG, 'all'];
+        // ** FIX: อัปเดต FILTER_TAGS เพื่อรองรับทั้ง 'health' และ 'all' **
+        const FILTER_TAGS = [CURRENT_PRODUCT_TAG, 'all']; // ['health', 'all']
         
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
         let productDisplayName = 'ประกันสุขภาพ (S4 Included)'; 
@@ -600,7 +600,7 @@
             const currentTurnFile = selectedRandomFiles[turn - 1]; 
             
             if (currentTurnFile) {
-                // *** ใช้ currentTurnFile.audio_url ตามการตรวจสอบในตาราง Supabase ***
+                // *** ใช้ currentTurnFile.audio_url (คอลัมน์ที่ถูกต้อง) ***
                 playAudio(currentTurnFile.audio_url, window.s1StatusElement, () => {
                     // *** หลังเสียงลูกค้าเล่นจบ ***
                     if (turn < maxTurns) {
@@ -833,7 +833,7 @@
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
             try {
-                // *** FIX: ใช้ .filter('column', 'ov', value) กับ string literal "{tag1,tag2}" เพื่อแก้ Error 400 ***
+                // *** FIX: ใช้ .filter('column', 'ov', value) กับ string literal "{tag1,tag2}" เพื่อแก้ Error 400/is not a function ***
                 // FILTER_TAGS = ['health', 'all']
                 const filterValue = `{${FILTER_TAGS.join(',')}}`; // ผลลัพธ์: {health,all}
 
@@ -882,7 +882,7 @@
 
         // --- 4. Initialization and DOM Assignment ---
         const initializeUserAndDOM = async function() {
-            // A. Assign DOM Elements to window (Binding)
+            // BINDING
             window.inputUserName = document.getElementById('inputUserName'); 
             window.inputUserGroup = document.getElementById('inputUserGroup');
             window.registrationSection = document.getElementById('registrationSection');
@@ -925,6 +925,7 @@
             window.maxCSpan = document.getElementById('maxCSpan');
             window.aRound = document.getElementById('aRound');
             window.maxASpan = document.getElementById('maxASpan');
+            window.currentHSpan = document.getElementById('currentHSpan');
             window.loadingOverlay = document.getElementById('loadingOverlay');
             window.loadingText = document.getElementById('loadingText');
             window.uploadProgressBar = document.getElementById('uploadProgressBar');
