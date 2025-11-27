@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (รองรับหลาย Product)</title>
+    <title>E-Simulator Roleplay (หลาย Product)</title>
     
     <style>
-        /* (Styles remain the same) */
+        /* 1. สไตล์ที่ถูกปรับขนาด (NEW) */
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
         body { 
             font-family: 'Sarabun', sans-serif;
@@ -53,6 +53,7 @@
         #finalSaveBtn { background-color: #007bff; color: white; font-weight: bold; }
         #finalSaveBtn.done { background-color: #28a745; }
 
+        /* Responsive Form Control */
         .form-control {
             padding: 10px;
             border: 1px solid #ccc;
@@ -65,6 +66,7 @@
             font-size: 16px;
         }
 
+        /* Difficulty Radio Styles */
         .difficulty-option {
             display: inline-block;
             margin: 8px;
@@ -83,6 +85,7 @@
         }
         input[type="radio"] { display: none; }
         
+        /* Loading Overlay */
         #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); color: white; display: none; 
@@ -94,6 +97,7 @@
         .progress { width: 80%; max-width: 400px; margin-top: 20px; height: 15px; background-color: #e9ecef; border-radius: 0.25rem; overflow: hidden; }
         .progress-bar { height: 100%; background-color: #007bff; transition: width 0.6s ease; }
         
+        /* Certificate Style */
         #certificate { border: 5px solid #333; padding: 40px; width: 90%; max-width: 800px; margin: 40px auto; text-align: center; display: none; }
 
         @media (max-width: 600px) {
@@ -125,7 +129,6 @@
         
         <div id="registrationSection">
             <h2 style="color: #333;">📝 หน้าลงทะเบียนและตั้งค่าแบบทดสอบ</h2>
-            
             <div style="margin-bottom: 20px;">
                 <label for="inputUserName" style="font-weight: bold; display: block; margin-bottom: 10px;">
                     ชื่อ-นามสกุล/รหัสพนักงาน:
@@ -141,10 +144,10 @@
                     <option value="">-- กรุณาเลือกแบบประกัน --</option>
                     <option value="health">ประกันสุขภาพ (Health)</option>
                     <option value="saving1">ประกันสะสมทรัพย์ 1 (Saving1)</option>
+                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option> 
                     <option value="retirement">ประกันบำนาญ (Retirement)</option>
                 </select>
             </div>
-            
             <div style="margin-bottom: 20px;">
                 <label for="inputUserGroup" style="font-weight: bold; display: block; margin-bottom: 10px;">
                     กลุ่มผู้เข้าทำแบบทดสอบ:
@@ -260,7 +263,6 @@
         </div>
     </div>
 
-   // ... (โค้ด HTML/CSS) ...
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
@@ -277,9 +279,10 @@
         
         let allRecordings = []; 
         
+        // 🚨 GLOBAL STATE FOR CUSTOMER AUDIO URL & USER GROUP / PRODUCT
         let lastCustomerAudioUrl = 'N/A';
         let userGroup = ''; 
-        let selectedProductType = ''; 
+        let selectedProductType = ''; // 👈 Global LET variable
         
         // Round Counters 
         let turn = 0;
@@ -465,7 +468,7 @@
             if (maxTurns > 0 && Q6_FINALE_FILE) {
                  selectedRandomFiles.push(Q6_FINALE_FILE.audio_url); 
             } else if (maxTurns > 0 && !Q6_FINALE_FILE) {
-                // 🚨 SAFETY CHECK
+                // 🚨 SAFETY CHECK: หากไม่พบไฟล์ finale
                  console.error(`[DATA ERROR] Product: ${selectedProductType} ต้องการ ${maxTurns} เทิร์น แต่ไม่พบไฟล์ is_finale: TRUE ในตาราง customer_replies_s1!`);
                  window.s1StatusElement.textContent = `❌ DATA ERROR: ไม่พบไฟล์สุดท้าย (is_finale: TRUE) สำหรับ ${selectedProductType}. โปรดตรวจสอบตาราง!`;
                  window.recordBtn.disabled = true;
@@ -474,7 +477,7 @@
             }
             
             // 🚨 SAFETY CHECK 2: ตรวจสอบจำนวนไฟล์ที่เลือก
-            if (selectedRandomFiles.length < maxTurns) {
+            if (selectedRandomFiles.length !== maxTurns) {
                 console.warn(`[DATA WARNING] Product ${selectedProductType} requires ${maxTurns} turns but only found ${selectedRandomFiles.length} files. Check available files (is_finale: FALSE) + the finale file.`);
             }
             
@@ -485,7 +488,8 @@
         const updateHealthQuestionUI = function() {
             const currentS4Questions = globalS4Questions[selectedProductType] || [];
             const currentS4FollowUpNames = globalS4FollowUpNames[selectedProductType] || [];
-            
+            const selectedDiseaseData = globalS4Questions[selectedProductType]?.selectedDisease || {};
+
             const healthQuestionDisplay = document.getElementById('healthQuestionDisplay');
             if (isFollowUpMode) {
                 const currentFNameData = currentS4FollowUpNames.find(f => f.step_index === followUpStep);
@@ -1272,7 +1276,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                     const nextFName = nextFNameData ? nextFNameData.step_name : 'คำถามซักประวัติ';
                     
                     window.hStatusElement.textContent = `🎤 พร้อมบันทึกคำถามซักประวัติ Q${followUpStep} (${nextFName})`;
-                    window.followUpQBtn.textContent = `🎙️ บันทึกคำถามซักประวัติ Q${followUpStep}`;
+                    window.followUpQBtn.textContent = `🎙️ บันทึกคำถามซักประวัติ Q${followUpUpStep}`;
                     window.followUpQBtn.disabled = false;
                 }
             };
@@ -1525,8 +1529,9 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                 return;
             }
             
-            if (!config) {
-                alert(`ไม่พบการตั้งค่าสำหรับระดับความยาก "${selectedDifficulty}" ในฐานข้อมูล`);
+            // 🚨 FIXED: ตรวจสอบความสมบูรณ์ของ Config
+            if (!config || !config.S1 || !config.S2 || !config.S3 || !config.S4 || !config.S5) {
+                alert(`❌ ข้อผิดพลาด: ไม่พบการตั้งค่าที่สมบูรณ์สำหรับระดับความยาก "${selectedDifficulty}" ในตาราง difficulty_config (ต้องมีคอลัมน์ S1, S2, S3, S4, S5). โปรดตรวจสอบตาราง!`);
                 return;
             }
 
