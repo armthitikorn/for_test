@@ -345,13 +345,21 @@ const { data: s1Data, error: s1Error } = await window.supabase
 if (s1Error) throw s1Error;
 globalS1Files = s1Data;
 
-// 3. ดึง S2 (questions_s2)
+// 3. ดึง S2 (questions_s2) - แก้ไขเพื่อ Debug
 window.loadingText.textContent = `กำลังดึงข้อมูลคำถามลูกค้า S2...`;
 const { data: s2Data, error: s2Error } = await window.supabase
     .from('questions_s2')
     .select('q_index, audio_url')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
+    .contains('product_type', [targetProductType])
     .order('q_index', { ascending: true });
+
+// --- เพิ่มบรรทัดนี้เพื่อดูผลลัพธ์ ---
+console.log('สรุปผลการดึง S2:', s2Data); 
+if (s2Data && s2Data.length === 0) {
+    console.error('!!! เจอปัญหา: ดึงข้อมูล S2 ได้ 0 แถว (ทั้งที่ใน DB มี) เช็ค RLS ด่วน !!!');
+}
+// ------------------------------
+
 if (s2Error) throw s2Error;
 globalS2Files = s2Data;
 
