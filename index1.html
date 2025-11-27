@@ -834,7 +834,8 @@
             window.loadingOverlay.style.display = "flex";
             try {
                 // *** FIX: ใช้ .filter('column', 'ov', value) กับ string literal "{tag1,tag2}" เพื่อแก้ Error 400 ***
-                const filterValue = `{"${FILTER_TAGS.join('","')}"}`; // ผลลัพธ์: {"health","all"}
+                // FILTER_TAGS = ['health', 'all']
+                const filterValue = `{${FILTER_TAGS.join(',')}}`; // ผลลัพธ์: {health,all}
 
                 // 1. Config
                 const { data: cData } = await window.supabase.from('difficulty_config').select('*');
