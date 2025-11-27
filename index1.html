@@ -332,88 +332,104 @@
                     };
                 });
 
-// กำหนดตัวแปรไว้แก้ไขง่ายๆ (ไม่ต้องใส่วงเล็บตรงนี้)
+// ตัวแปรสำหรับกรอง (Filter)
 const targetProductType = 'health'; 
 
-// 2. ดึง S1 (customer_replies_s1)
+// ฟังก์ชันช่วยเช็คว่าเป็น Product ที่เราต้องการไหม (ใช้ JavaScript เช็ค)
+// รองรับทั้งแบบ Array ["health"] และแบบ Text ธรรมดา "health"
+const isTargetProduct = (row) => {
+    if (!row.product_type) return false; // ถ้าไม่มีข้อมูลข้ามไป
+    if (Array.isArray(row.product_type)) {
+        return row.product_type.includes(targetProductType); // ถ้าเป็น Array เช็คว่ามีคำว่า health ไหม
+    }
+    return row.product_type === targetProductType; // ถ้าเป็น Text เช็คว่าตรงกันไหม
+};
+
+// ---------------------------------------------------------
+
+// 2. ดึง S1 (อันนี้ของคุณผ่านแล้ว ใช้แบบเดิมหรือแบบใหม่ก็ได้ แต่ผมใส่แบบใหม่ให้เพื่อความชัวร์)
 window.loadingText.textContent = `กำลังดึงข้อมูลบทโต้ตอบต้นสาย...`;
-const { data: s1Data, error: s1Error } = await window.supabase
+const { data: s1Raw, error: s1Error } = await window.supabase
     .from('customer_replies_s1')
-    .select('turn_index, audio_url, is_finale')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains และใส่ [] ครอบตัวแปร
+    .select('turn_index, audio_url, is_finale, product_type') // <--- ดึง product_type มาด้วย
     .order('turn_index', { ascending: true });
+
 if (s1Error) throw s1Error;
-globalS1Files = s1Data;
+// กรองใน JS
+globalS1Files = s1Raw.filter(isTargetProduct);
 
-// 3. ดึง S2 (questions_s2) - แก้ไขเพื่อ Debug
+
+// 3. ดึง S2 (questions_s2) - แก้ด้วยวิธีไม้ตาย
 window.loadingText.textContent = `กำลังดึงข้อมูลคำถามลูกค้า S2...`;
-const { data: s2Data, error: s2Error } = await window.supabase
+const { data: s2Raw, error: s2Error } = await window.supabase
     .from('questions_s2')
-    .select('q_index, audio_url')
-    .contains('product_type', [targetProductType])
-    .order('q_index', { ascending: true });
-
-// --- เพิ่มบรรทัดนี้เพื่อดูผลลัพธ์ ---
-console.log('สรุปผลการดึง S2:', s2Data); 
-if (s2Data && s2Data.length === 0) {
-    console.error('!!! เจอปัญหา: ดึงข้อมูล S2 ได้ 0 แถว (ทั้งที่ใน DB มี) เช็ค RLS ด่วน !!!');
-}
-// ------------------------------
+    .select('q_index, audio_url, product_type') // <--- ดึง product_type มาด้วย
+    .order('q_index', { ascending: true }); // ดึงมาก่อนทั้งหมด
 
 if (s2Error) throw s2Error;
-globalS2Files = s2Data;
+
+// กรองเอาเฉพาะ health ใน Code JavaScript (ชัวร์กว่า)
+globalS2Files = s2Raw.filter(isTargetProduct);
+
+console.log(`S2 Raw: ${s2Raw.length} rows, Filtered: ${globalS2Files.length} rows`); // เช็คดูว่าเหลือเท่าไหร่
+
 
 // 4. ดึง S3 (objections_s3)
 window.loadingText.textContent = `กำลังดึงข้อมูลข้อโต้แย้ง S3...`;
-const { data: s3Data, error: s3Error } = await window.supabase
+const { data: s3Raw, error: s3Error } = await window.supabase
     .from('objections_s3')
-    .select('ob_index, audio_url')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
+    .select('ob_index, audio_url, product_type')
     .order('ob_index', { ascending: true });
-if (s3Error) throw s3Error;
-globalS3Files = s3Data;
 
-// 5. ดึง S4 (health_questions_s4 - คำถามหลัก)
+if (s3Error) throw s3Error;
+globalS3Files = s3Raw.filter(isTargetProduct);
+
+
+// 5. ดึง S4 (health_questions_s4)
 window.loadingText.textContent = `กำลังดึงข้อมูลคำถามสุขภาพ S4...`;
-const { data: s4Data, error: s4Error } = await window.supabase
+const { data: s4Raw, error: s4Error } = await window.supabase
     .from('health_questions_s4')
-    .select('q_index, q_text, is_yes_trigger, yes_trigger_url')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
+    .select('q_index, q_text, is_yes_trigger, yes_trigger_url, product_type')
     .order('q_index', { ascending: true });
+
 if (s4Error) throw s4Error;
 
-globalS4Questions = s4Data.map(q => q.q_text);
-selectedDisease = s4Data.find(q => q.is_yes_trigger) || {};
+const s4Filtered = s4Raw.filter(isTargetProduct);
+globalS4Questions = s4Filtered.map(q => q.q_text);
+selectedDisease = s4Filtered.find(q => q.is_yes_trigger) || {};
+
 
 // 6. ดึง S4 Follow-up Names
 window.loadingText.textContent = `กำลังดึงข้อมูลชื่อคำถามซักประวัติ S4...`;
-const { data: s4FNamesData, error: s4FNamesError } = await window.supabase
+const { data: s4FNamesRaw, error: s4FNamesError } = await window.supabase
     .from('s4_follow_up_names')
-    .select('step_index, step_name')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
+    .select('step_index, step_name, product_type')
     .order('step_index', { ascending: true });
+
 if (s4FNamesError) throw s4FNamesError;
-globalS4FollowUpNames = s4FNamesData;
+globalS4FollowUpNames = s4FNamesRaw.filter(isTargetProduct);
+
 
 // 7. ดึง S4 Follow-up Replies
 window.loadingText.textContent = `กำลังดึงข้อมูลคำตอบซักประวัติ S4...`;
-const { data: s4FRepliesData, error: s4FRepliesError } = await window.supabase
+const { data: s4FRepliesRaw, error: s4FRepliesError } = await window.supabase
     .from('s4_follow_up_replies')
-    .select('step_index, customer_audio_url')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
+    .select('step_index, customer_audio_url, product_type')
     .order('step_index', { ascending: true });
+
 if (s4FRepliesError) throw s4FRepliesError;
-globalS4FollowUpReplies = s4FRepliesData;
+globalS4FollowUpReplies = s4FRepliesRaw.filter(isTargetProduct);
+
 
 // 8. ดึง S5 (scripts_s5)
 window.loadingText.textContent = `กำลังดึงข้อมูลขั้นตอนลงทะเบียน S5...`;
-const { data: s5Data, error: s5Error } = await window.supabase
+const { data: s5Raw, error: s5Error } = await window.supabase
     .from('scripts_s5')
-    .select('step_index, step_name, customer_audio_url')
-    .contains('product_type', [targetProductType]) // <--- แก้เป็น .contains
+    .select('step_index, step_name, customer_audio_url, product_type')
     .order('step_index', { ascending: true });
+
 if (s5Error) throw s5Error;
-globalS5Steps = s5Data;
+globalS5Steps = s5Raw.filter(isTargetProduct);
 
                 window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
                 
