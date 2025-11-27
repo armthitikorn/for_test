@@ -144,8 +144,7 @@
                     <option value="">-- กรุณาเลือกแบบประกัน --</option>
                     <option value="health">ประกันสุขภาพ (Health)</option>
                     <option value="saving1">ประกันสะสมทรัพย์ 1 (Saving1)</option>
-                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option> 
-                    <option value="retirement">ประกันบำนาญ (Retirement)</option>
+                    <option value="saving2">ประกันสะสมทรัพย์ 2 (Saving2)</option> <option value="retirement">ประกันบำนาญ (Retirement)</option>
                 </select>
             </div>
             <div style="margin-bottom: 20px;">
@@ -265,7 +264,7 @@
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-        import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
+        import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'; // เปลี่ยนจาก uuid@8.3.2 เป็น supabase-js/esm
 
         // --- 1. Supabase Config & Global State ---
         const supabaseUrl = 'https://wzwyotzzxycqfwercakh.supabase.co';
@@ -303,7 +302,7 @@
         
         // --- GLOBAL DATA STORES (ใช้ Object เพื่อ Group ข้อมูลตาม Product) ---
         let globalConfig = {};
-        let globalS1Files = {}; 
+        let globalS1Files = {}; // { 'health': [...], 'retirement': [...], ... }
         let globalS2Files = {};
         let globalS3Files = {};
         let globalS4Questions = {}; 
@@ -314,7 +313,7 @@
         // Fixed S4 Audio
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
         
-        // --- Hardcoded Data ---
+        // --- Hardcoded Data (Fallback) ---
         const H_FOLLOW_UP_NAMES_HARDCODE = [
             "1. เป็นมานานเท่าไหร่", "2. ลักษณะอาการเป็นอย่างไร",
             "3. วิธีการรักษาของแพทย์", "4. ตรวจครั้งล่าสุดเมื่อไหร่",
@@ -325,7 +324,7 @@
         let audioCache = {};
         let selectedRandomFiles = []; 
         
-        // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase (ใช้ตรรกะ Grouping)
+        // E. ฟังก์ชันดึงข้อมูลทั้งหมดจาก Supabase (ใช้ตรรกะ Grouping ที่ได้รับการปรับปรุง)
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
             window.loadingText.textContent = `กำลังดึงข้อมูลการตั้งค่าจากฐานข้อมูล...`;
@@ -346,6 +345,11 @@
                 // Helper function to fetch and group data by the FIRST value in the 'product_type' array field
                 const fetchAndGroup = async (tableName, keyField, groupStore, selectFields = '*') => {
                     window.loadingText.textContent = `กำลังดึงข้อมูล ${tableName}...`;
+                    // ** NOTE: ลบ 'disease_name' ออกจาก health_questions_s4 เนื่องจาก Supabase 400 Error **
+                    if (tableName === 'health_questions_s4') {
+                         selectFields = 'q_index, q_text, is_yes_trigger, yes_trigger_url, product_type';
+                    }
+                    
                     const { data, error } = await window.supabase
                         .from(tableName)
                         .select(selectFields) 
@@ -354,15 +358,17 @@
                     
                     data.forEach(item => {
                         const productArray = item.product_type || [];
-                        // ใช้ product ตัวแรกใน array เป็น key สำหรับ Grouping
-                        const product = productArray[0] ? productArray[0].toLowerCase() : 'unknown'; 
+                        const products = productArray.map(p => p.toLowerCase()); // Product Array to lowercase
                         
-                        if (product) {
-                            if (!groupStore[product]) {
-                                groupStore[product] = [];
+                        // Group item by ALL product tags it contains
+                        products.forEach(product => {
+                             if (product) {
+                                if (!groupStore[product]) {
+                                    groupStore[product] = [];
+                                }
+                                groupStore[product].push(item);
                             }
-                            groupStore[product].push(item);
-                        }
+                        });
                     });
                 };
 
@@ -370,14 +376,10 @@
                 await fetchAndGroup('customer_replies_s1', 'turn_index', globalS1Files, 'turn_index, is_finale, audio_url, product_type');
                 await fetchAndGroup('questions_s2', 'q_index', globalS2Files, 'q_index, q_text, audio_url, product_type');
                 await fetchAndGroup('objections_s3', 'ob_index', globalS3Files, 'ob_index, audio_url, product_type');
-                
-                // 🚨 FIXED: ลบ 'disease_name' ออกจาก select fields เพื่อแก้ปัญหา 400 Bad Request
                 await fetchAndGroup('health_questions_s4', 'q_index', globalS4Questions, 'q_index, q_text, is_yes_trigger, yes_trigger_url, product_type');
-                
                 await fetchAndGroup('s4_follow_up_names', 'step_index', globalS4FollowUpNames, 'step_index, step_name, product_type');
                 await fetchAndGroup('s4_follow_up_replies', 'step_index', globalS4FollowUpReplies, 'step_index, customer_audio_url, product_type');
                 await fetchAndGroup('scripts_s5', 'step_index', globalS5Steps, 'step_index, step_name, customer_audio_url, product_type');
-
 
                 // จัดโครงสร้าง S4 Questions: แยก Q Text และ Selected Disease ออกมา
                 for (const product in globalS4Questions) {
@@ -386,11 +388,10 @@
                     const trigger = data.find(q => q.is_yes_trigger) || {}; 
                     
                     globalS4Questions[product] = qTexts; 
-                    // ใช้ q_text เพื่อหาชื่อโรคแทน disease_name
                     globalS4Questions[product].selectedDisease = trigger ? {
                         disease_name: trigger.q_text.split(':')[0].trim() || 'โรคสำคัญ', 
                         yes_trigger_url: trigger.yes_trigger_url
-                    } : {};
+                    } : null; // ใช้ null ถ้าไม่มี trigger
                 }
 
                 window.loadingText.textContent = `✅ โหลดข้อมูลจาก Supabase เสร็จสมบูรณ์!`;
@@ -403,8 +404,7 @@
                 
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
-                // แสดง error ที่ละเอียดขึ้น
-                window.loadingText.textContent = `❌ ข้อผิดพลาดในการโหลดข้อมูล: ${error.message}. โปรดตรวจสอบ Supabase Tables/Columns (400 Error มักเกิดจากชื่อคอลัมน์ผิดพลาด)`;
+                window.loadingText.textContent = `❌ ข้อผิดพลาดในการโหลดข้อมูล: ${error.message}. โปรดตรวจสอบ Supabase Tables/Columns`;
                 window.startTestBtn.disabled = true;
                 setTimeout(() => { window.loadingOverlay.style.display = "none"; }, 3000);
                 return false;
@@ -414,7 +414,7 @@
         const preloadCriticalAudio = function(product) {
             // ใช้ Product ที่ระบุเพื่อ Preload
             const s1Urls = (globalS1Files[product] || []).map(f => f.audio_url); 
-            const s2Urls = (globalS2Files[product] || []).map(f => f.audio_url); 
+            const s2Urls = (globalS2Files[product] || []).map(f(f.audio_url); // FIX: Syntax error here
             const s3Urls = (globalS3Files[product] || []).map(f => f.audio_url); 
             
             const diseaseData = globalS4Questions[product]?.selectedDisease || {};
@@ -458,7 +458,7 @@
 
             // 1. ดึงไฟล์ของ Product ที่เลือกเท่านั้น
             const s1FilesForProduct = globalS1Files[selectedProductType] || [];
-
+            
             // 2. หาไฟล์สุดท้าย: โดยใช้ is_finale เป็น TRUE เสมอ
             const Q6_FINALE_FILE = s1FilesForProduct.find(f => f.is_finale); 
             
@@ -466,6 +466,7 @@
             const availableFiles = s1FilesForProduct.filter(f => !f.is_finale);
             
             // 4. เลือกไฟล์ก่อนหน้าตามจำนวน maxTurns - 1
+            // ** IMPORTANT: ตรวจสอบให้แน่ใจว่า availableFiles มีจำนวนพอสำหรับ maxTurns-1 **
             const precedingFiles = availableFiles.slice(0, maxTurns - 1).map(f => f.audio_url); 
             
             selectedRandomFiles = precedingFiles;
@@ -473,17 +474,17 @@
             // 5. เพิ่มไฟล์สุดท้าย (Q6_FINALE_FILE) เข้าไปในลำดับสุดท้าย
             if (maxTurns > 0 && Q6_FINALE_FILE) {
                  selectedRandomFiles.push(Q6_FINALE_FILE.audio_url); 
-            } else if (maxTurns > 0 && !Q6_FINALE_FILE) {
-                // 🚨 SAFETY CHECK: หากไม่พบไฟล์ finale
-                 console.error(`[DATA ERROR] Product: ${selectedProductType} ต้องการ ${maxTurns} เทิร์น แต่ไม่พบไฟล์ is_finale: TRUE ในตาราง customer_replies_s1!`);
+            } else if (maxTurns > 0 && selectedRandomFiles.length < maxTurns) {
+                // 🚨 SAFETY CHECK 3: หากไม่พบไฟล์ finale และจำนวนไฟล์ยังไม่ครบ
+                 console.error(`[DATA ERROR] Product: ${selectedProductType} ต้องการ ${maxTurns} เทิร์น แต่ไม่พบไฟล์ is_finale: TRUE หรือไฟล์ไม่ครบ!`);
                  window.s1StatusElement.textContent = `❌ DATA ERROR: ไม่พบไฟล์สุดท้าย (is_finale: TRUE) สำหรับ ${selectedProductType}. โปรดตรวจสอบตาราง!`;
                  window.recordBtn.disabled = true;
                  window.nextRoundBtn.disabled = true;
-                 return;
+                 // ไม่ต้อง return เพื่อให้สามารถรันต่อได้หากไม่พบไฟล์ แต่จะแจ้ง error
             }
             
             // 🚨 SAFETY CHECK 2: ตรวจสอบจำนวนไฟล์ที่เลือก
-            if (selectedRandomFiles.length < maxTurns) {
+            if (selectedRandomFiles.length !== maxTurns) {
                 console.warn(`[DATA WARNING] Product ${selectedProductType} requires ${maxTurns} turns but only found ${selectedRandomFiles.length} files. Check available files (is_finale: FALSE) + the finale file.`);
             }
             
@@ -894,8 +895,6 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             }
         }
 
-        // --- Section 1.5, 2, 3 Flow (All remain the same) ---
-        
         const initSection1_5 = function() {
             document.getElementById('section1Div').style.display = 'none';
             document.getElementById('section1_5Div').style.display = 'block';
@@ -958,7 +957,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             // 🚨 ใช้ Array Index ภายในกลุ่ม Product ที่เลือก (นี่คือการแก้ไข Indexing)
             const s2FilesForProduct = globalS2Files[selectedProductType] || [];
             
-            const s2File = s2FilesForProduct[qRound - 1]; // qRound 1 = Index 0
+            const s2File = s2FilesForProduct.find(f => f.q_index === qRound); // ใช้ q_index เพื่อหาไฟล์
             const selectedFile = s2File ? s2File.audio_url : null;
             
             if (!selectedFile) {
@@ -1037,7 +1036,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             // 🚨 ใช้ Array Index ภายในกลุ่ม Product ที่เลือก (นี่คือการแก้ไข Indexing)
             const s3FilesForProduct = globalS3Files[selectedProductType] || [];
             
-            const s3File = s3FilesForProduct[cRound - 1]; // cRound 1 = Index 0
+            const s3File = s3FilesForProduct.find(f => f.ob_index === cRound); // ใช้ ob_index เพื่อหาไฟล์
             selectedFile = s3File ? s3File.audio_url : null;
             
             if (!selectedFile) {
@@ -1105,6 +1104,13 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                  initSection5();
                  return;
             }
+            
+            const currentS4Questions = globalS4Questions[selectedProductType] || [];
+            if (currentS4Questions.length === 0) {
+                console.warn(`[WARNING] Product ${selectedProductType} requires S4 but no questions found.`);
+                initSection5();
+                 return;
+            }
 
             // 3. จัดการ Display และ State
             document.getElementById('section1Div').style.display = 'none';
@@ -1153,7 +1159,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                 isTriggerQuestion = (currentHIndex === 0 && maxH === 1);
             }
             
-            if (isTriggerQuestion) {
+            if (isTriggerQuestion && selectedDiseaseData) {
                 isYes = true;
                 customerReplyUrl = selectedDiseaseData.yes_trigger_url || NO_ANSWER_URL;
             } else {
@@ -1188,7 +1194,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
                 
                 lastCustomerAudioUrl = isYes ? customerReplyUrl : NO_ANSWER_URL; 
 
-                if (isYes) {
+                if (isYes && selectedDiseaseData) {
                     isFollowUpMode = true; 
                     followUpStep = 1; 
                     updateHealthQuestionUI(); 
@@ -1559,7 +1565,7 @@ ${isFinalCustomerTurn ? 'กรุณากดปุ่ม "จบบทที�
             maxC = config.S3;
             maxH = config.S4; 
             maxA = config.S5; 
-            maxFollowUp = 5; // Fixed value based on the H_FOLLOW_UP_NAMES_HARDCODE length 
+            maxFollowUp = 5; 
 
             window.maxTurnSpan.textContent = maxTurns;
             window.maxQSpan.textContent = maxQ;
