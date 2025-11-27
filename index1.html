@@ -245,7 +245,8 @@
             <button id="certBtn" style="display: none;">🎓 แสดงใบประกาศ</button>
         </div>
     </div>
-<script type="module">
+
+    <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
 
@@ -258,8 +259,8 @@
         const DEFAULT_PRODUCT_TAG = 'health'; 
         const CURRENT_PRODUCT_TAG = localStorage.getItem('roleplaySelectedProductTag') || DEFAULT_PRODUCT_TAG;
         
-        // *** FIX: เปลี่ยน FILTER_TAGS ให้รวม ['health', 'all'] ตามที่ผู้ใช้แจ้ง ***
-        const FILTER_TAGS = [CURRENT_PRODUCT_TAG, 'all']; // ['health', 'all']
+        // *** FIX: FILTER_TAGS เป็น ['health', 'all'] ตามที่ผู้ใช้แจ้ง ***
+        const FILTER_TAGS = [CURRENT_PRODUCT_TAG, 'all'];
         
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
         let productDisplayName = 'ประกันสุขภาพ (S4 Included)'; 
@@ -832,40 +833,40 @@
         const fetchInitialData = async function() {
             window.loadingOverlay.style.display = "flex";
             try {
-                // *** FIX: ใช้ .filter('column', '@>', value) โดยใช้ string literal สำหรับ Array เพื่อแก้ Error 400 และรองรับเวอร์ชันเก่า ***
-                const filterQuery = `{"${FILTER_TAGS.join('", "')}"}`; // ผลลัพธ์: {"health", "all"}
+                // *** FIX: ใช้ .filter('column', 'ov', value) กับ string literal "{tag1,tag2}" เพื่อแก้ Error 400 ***
+                const filterValue = `{"${FILTER_TAGS.join('","')}"}`; // ผลลัพธ์: {"health","all"}
 
                 // 1. Config
                 const { data: cData } = await window.supabase.from('difficulty_config').select('*');
                 cData.forEach(c => globalConfig[c.difficulty_level] = { S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S4: c.max_s4, S5: c.max_s5 });
 
                 // 2. S1 (FILTERED)
-                const { data: s1 } = await window.supabase.from('customer_replies_s1').select('turn_index, is_finale, product_type, audio_url').filter('product_type', '@>', filterQuery).order('turn_index');
+                const { data: s1 } = await window.supabase.from('customer_replies_s1').select('turn_index, is_finale, product_type, audio_url').filter('product_type', 'ov', filterValue).order('turn_index');
                 globalS1Files = s1 || [];
                 
                 // 3. S2 (FILTERED)
-                const { data: s2 } = await window.supabase.from('questions_s2').select('q_index, product_type, audio_url, q_name').filter('product_type', '@>', filterQuery).order('q_index');
+                const { data: s2 } = await window.supabase.from('questions_s2').select('q_index, product_type, audio_url, q_name').filter('product_type', 'ov', filterValue).order('q_index');
                 globalS2Files = s2 || [];
                 
                 // 4. S3 (FILTERED)
-                const { data: s3 } = await window.supabase.from('objections_s3').select('ob_index, product_type, audio_url, ob_name').filter('product_type', '@>', filterQuery).order('ob_index');
+                const { data: s3 } = await window.supabase.from('objections_s3').select('ob_index, product_type, audio_url, ob_name').filter('product_type', 'ov', filterValue).order('ob_index');
                 globalS3Files = s3 || [];
                 
                 // 5. S4 Questions (FILTERED)
-                const { data: s4 } = await window.supabase.from('health_questions_s4').select('q_index, product_type, q_text, is_yes_trigger, yes_trigger_url').filter('product_type', '@>', filterQuery).order('q_index');
+                const { data: s4 } = await window.supabase.from('health_questions_s4').select('q_index, product_type, q_text, is_yes_trigger, yes_trigger_url').filter('product_type', 'ov', filterValue).order('q_index');
                 globalS4Questions = (s4 || []).map(q => q.q_text);
                 selectedDisease = (s4||[]).find(q => q.is_yes_trigger) || {name: 'โรคสำคัญ', yes_trigger_url: NO_ANSWER_URL};
                 
                 // 6. S4 Follow-up Names (FILTERED)
-                const { data: s4n } = await window.supabase.from('s4_follow_up_names').select('*').filter('product_type', '@>', filterQuery).order('step_index');
+                const { data: s4n } = await window.supabase.from('s4_follow_up_names').select('*').filter('product_type', 'ov', filterValue).order('step_index');
                 globalS4FollowUpNames = s4n || [];
                 
                 // 7. S4 Follow-up Replies (FILTERED)
-                const { data: s4r } = await window.supabase.from('s4_follow_up_replies').select('step_index, product_type, audio_url').filter('product_type', '@>', filterQuery).order('step_index');
+                const { data: s4r } = await window.supabase.from('s4_follow_up_replies').select('step_index, product_type, audio_url').filter('product_type', 'ov', filterValue).order('step_index');
                 globalS4FollowUpReplies = s4r || [];
                 
                 // 8. S5 (FILTERED)
-                const { data: s5 } = await window.supabase.from('scripts_s5').select('step_index, product_type, step_name, audio_url').filter('product_type', '@>', filterQuery).order('step_index');
+                const { data: s5 } = await window.supabase.from('scripts_s5').select('step_index, product_type, step_name, audio_url').filter('product_type', 'ov', filterValue).order('step_index');
                 globalS5Steps = s5 || [];
                 
                 window.loadingOverlay.style.display = "none";
@@ -1029,5 +1030,5 @@
         document.addEventListener('DOMContentLoaded', initializeUserAndDOM);
         
     </script>
-    </body>
+</body>
 </html>
