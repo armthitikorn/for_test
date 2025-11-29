@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (Strict Mode)</title>
+    <title>E-Simulator Roleplay (Multi-Product Final)</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
@@ -180,18 +180,30 @@
                 const { data: configData } = await window.supabase.from('difficulty_config').select('*');
                 configData.forEach(c => globalConfig[c.difficulty_level] = { S1: c.max_s1, S2: c.max_s2, S3: c.max_s3, S4: c.max_s4, S5: c.max_s5 });
                 
-                const fetchAndGroup = async (tableName, keyField, groupStore) => {
-                    const { data, error } = await window.supabase.from(tableName).select('*').order(keyField, { ascending: true });
+                // ✅ KEY FIX: วนลูปเก็บข้อมูลให้ครบทุก Product Type ที่ระบุใน Array
+                const fetchAndGroup = async (tableName, keyField, groupStore, selectFields = '*') => {
+                    const { data, error } = await window.supabase.from(tableName).select(selectFields).order(keyField, { ascending: true });
                     if (error) throw error;
+                    
                     data.forEach(item => {
+                        // Cleanup
+                        if (item.audio_url) item.audio_url = item.audio_url.trim();
+                        if (item.customer_audio_url) item.customer_audio_url = item.customer_audio_url.trim();
+                        if (item.yes_trigger_url) item.yes_trigger_url = item.yes_trigger_url.trim();
+
                         const productArray = item.product_type || [];
+                        
+                        // Loop Through All Product Tags!
                         productArray.forEach(p => {
-                            const product = p.toLowerCase();
-                            if (!groupStore[product]) groupStore[product] = [];
-                            groupStore[product].push(item);
+                            const product = p.toLowerCase().trim();
+                            if (product) {
+                                if (!groupStore[product]) groupStore[product] = [];
+                                groupStore[product].push(item);
+                            }
                         });
                     });
                 };
+
                 await fetchAndGroup('customer_replies_s1', 'turn_index', globalS1Files);
                 await fetchAndGroup('questions_s2', 'q_index', globalS2Files);
                 await fetchAndGroup('objections_s3', 'ob_index', globalS3Files);
@@ -231,7 +243,7 @@
         }
 
         const playAudio = (url, statusEl, btnToEnable, successMsg) => {
-            if (!url) { statusEl.textContent = `❌ ไม่พบไฟล์เสียง (Check DB for ${selectedProductType})`; return; }
+            if (!url) { statusEl.textContent = `❌ ไม่พบไฟล์เสียง (Check DB for ${selectedProductType})`; return undefined; }
             statusEl.textContent = "⏳ กำลังโหลดเสียง...";
             const audio = getCachedAudioElement(url);
             const attempt = () => {
@@ -260,8 +272,7 @@
             if (qRound >= maxQ) { window.s2StatusElement.textContent = "🎉 จบบทที่ 2"; window.nextSection3Btn.disabled = false; return; }
             qRound++; window.qRoundSpan.textContent = qRound;
             const file = (globalS2Files[selectedProductType] || []).find(f => f.q_index === qRound);
-            if (!file) { window.s2StatusElement.textContent = `❌ ไม่พบไฟล์ S2 Q${qRound}`; return; }
-            window.questionAudio = playAudio(file.audio_url, window.s2StatusElement, window.answerBtn);
+            window.questionAudio = playAudio(file?.audio_url, window.s2StatusElement, window.answerBtn);
             if(qRound===1) window.startQBtn.style.display = 'none';
         }
         const playS3 = () => {
@@ -278,58 +289,66 @@
             const dData = globalS4Questions[selectedProductType]?.selectedDisease || {};
             const url = isTrigger ? (dData.yes_trigger_url || NO_ANSWER_URL) : NO_ANSWER_URL;
             window.healthAudio = playAudio(url, window.hStatusElement, null);
-            window.healthAudio.onended = () => {
-                lastCustomerAudioUrl = url;
-                if (isTrigger) {
-                    isFollowUpMode = true; followUpStep = 1; updateS4UI();
-                    window.hStatusElement.textContent = "🎤 ลูกค้าตอบ 'ใช่' -> เข้าสู่การซักประวัติ";
-                    window.followUpQBtn.style.display = 'inline-block'; window.answerHBtn.style.display = 'none'; window.followUpQBtn.disabled = false;
-                } else {
-                    currentHIndex++;
-                    if(currentHIndex < maxH) { updateS4UI(); window.hStatusElement.textContent = "✅ ลูกค้าตอบ 'ไม่' -> ถามข้อถัดไป"; window.answerHBtn.disabled = false; }
-                    else { window.hStatusElement.textContent = "🎉 จบบทที่ 4"; window.nextSection5Btn.disabled = false; }
-                }
-            };
+            
+            if (window.healthAudio) {
+                window.healthAudio.onended = () => {
+                    lastCustomerAudioUrl = url;
+                    if (isTrigger) {
+                        isFollowUpMode = true; followUpStep = 1; updateS4UI();
+                        window.hStatusElement.textContent = "🎤 ลูกค้าตอบ 'ใช่' -> เข้าสู่การซักประวัติ";
+                        window.followUpQBtn.style.display = 'inline-block'; window.answerHBtn.style.display = 'none'; window.followUpQBtn.disabled = false;
+                    } else {
+                        currentHIndex++;
+                        if(currentHIndex < maxH) { updateS4UI(); window.hStatusElement.textContent = "✅ ลูกค้าตอบ 'ไม่' -> ถามข้อถัดไป"; window.answerHBtn.disabled = false; }
+                        else { window.hStatusElement.textContent = "🎉 จบบทที่ 4"; window.nextSection5Btn.disabled = false; }
+                    }
+                };
+            } else {
+                window.answerHBtn.disabled = false; 
+            }
         }
         
-        // 🔥 แก้ไขแล้ว: ลบการดึงข้อมูลจาก Health ออกอย่างถาวร
         const playS4FollowUp = () => {
             window.followUpQBtn.disabled = true;
-            // บังคับดึงเฉพาะ Product ที่เลือก ถ้าไม่มี = undefined และไม่มีการ fallback
+            // Strict Mode: Only get from selectedProductType (แต่ตอนนี้ selectedProductType มีข้อมูลครบถ้วนจากการ Group แล้ว)
             const fileData = (globalS4FollowUpReplies[selectedProductType] || []).find(f => f.step_index === followUpStep);
             
             window.healthAudio = playAudio(fileData?.customer_audio_url, window.hStatusElement, null);
-            window.healthAudio.onended = () => {
-                lastCustomerAudioUrl = fileData?.customer_audio_url; followUpStep++;
-                if (followUpStep > maxFollowUp) {
-                    isFollowUpMode = false; currentHIndex++;
-                    if(currentHIndex < maxH) { updateS4UI(); window.followUpQBtn.style.display = 'none'; window.answerHBtn.style.display = 'inline-block'; window.answerHBtn.disabled = false; }
-                    else { window.hStatusElement.textContent = "🎉 จบบทที่ 4"; window.followUpQBtn.style.display = 'none'; window.nextSection5Btn.disabled = false; }
-                } else { updateS4UI(); window.followUpQBtn.disabled = false; }
-            };
+            
+            if (window.healthAudio) {
+                window.healthAudio.onended = () => {
+                    lastCustomerAudioUrl = fileData?.customer_audio_url; followUpStep++;
+                    if (followUpStep > maxFollowUp) {
+                        isFollowUpMode = false; currentHIndex++;
+                        if(currentHIndex < maxH) { updateS4UI(); window.followUpQBtn.style.display = 'none'; window.answerHBtn.style.display = 'inline-block'; window.answerHBtn.disabled = false; }
+                        else { window.hStatusElement.textContent = "🎉 จบบทที่ 4"; window.followUpQBtn.style.display = 'none'; window.nextSection5Btn.disabled = false; }
+                    } else { updateS4UI(); window.followUpQBtn.disabled = false; }
+                };
+            } else {
+                window.followUpQBtn.disabled = false;
+            }
         }
         
-        // 🔥 แก้ไขแล้ว: ลบการดึงข้อมูลจาก Health ออกอย่างถาวร
         const playS5 = () => {
-            // บังคับดึงเฉพาะ Product ที่เลือก
             const step = (globalS5Steps[selectedProductType] || []).find(s => s.step_index === aRound);
-
             window.answerABtn.disabled = true;
             window.agreementAudio = playAudio(step?.customer_audio_url, window.aStatusElement, null);
-            window.agreementAudio.onended = () => {
-                lastCustomerAudioUrl = step?.customer_audio_url;
-                if (aRound >= maxA) { window.aStatusElement.textContent = "🎉 เสร็จสิ้นทั้งหมด!"; window.finalSaveBtn.disabled = false; updateStepHighlight(99); }
-                else { aRound++; window.aRoundSpan.textContent = aRound; updateStepHighlight(aRound); window.answerABtn.textContent = `🎙️ บันทึกขั้นตอนที่ ${aRound}`; window.answerABtn.disabled = false; }
-            };
+            
+            if (window.agreementAudio) {
+                window.agreementAudio.onended = () => {
+                    lastCustomerAudioUrl = step?.customer_audio_url;
+                    if (aRound >= maxA) { window.aStatusElement.textContent = "🎉 เสร็จสิ้นทั้งหมด!"; window.finalSaveBtn.disabled = false; updateStepHighlight(99); }
+                    else { aRound++; window.aRoundSpan.textContent = aRound; updateStepHighlight(aRound); window.answerABtn.textContent = `🎙️ บันทึกขั้นตอนที่ ${aRound}`; window.answerABtn.disabled = false; }
+                };
+            } else {
+                window.answerABtn.disabled = false;
+            }
         }
 
-        // 🔥 แก้ไขแล้ว: ลบการดึงชื่อคำถามจาก Health ออก
         const updateS4UI = () => {
             const d = document.getElementById('healthQuestionDisplay');
             if (isFollowUpMode) {
-                // บังคับดึงเฉพาะ Product ที่เลือก
                 const fList = globalS4FollowUpNames[selectedProductType] || [];
-                
                 const fName = fList.find(f => f.step_index === followUpStep)?.step_name || `Q${followUpStep}`;
                 window.hQName.textContent = `ซักประวัติ Q${followUpStep}`; d.innerHTML = `<p>ถามซักประวัติ: <strong>${fName}</strong></p>`;
                 window.followUpQBtn.textContent = `🎙️ บันทึกซักประวัติ Q${followUpStep}`;
@@ -340,12 +359,9 @@
             } else { d.innerHTML = "<p>✅ เสร็จสิ้น</p>"; }
         }
         
-        // 🔥 แก้ไขแล้ว: ลบการดึงข้อมูลจาก Health ออก
         const updateStepHighlight = (step) => {
             window.stepList.innerHTML = '';
-            // บังคับดึงเฉพาะ Product ที่เลือก
             const steps = globalS5Steps[selectedProductType] || [];
-
             steps.forEach(s => {
                 const li = document.createElement('li'); li.textContent = s.step_name;
                 if(s.step_index === step) { li.style.fontWeight = 'bold'; li.style.color = 'blue'; }
