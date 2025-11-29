@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>E-Simulator Roleplay (Fixed S4 Follow-up)</title>
+    <title>E-Simulator Roleplay (Fixed S4 Logic)</title>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
@@ -271,8 +271,6 @@
             const file = (globalS3Files[selectedProductType] || []).find(f => f.ob_index === cRound);
             window.objectionAudio = playAudio(file?.audio_url, window.s3StatusElement, window.replyBtn);
         }
-        
-        // --- ส่วนที่แก้ไข: การเล่นไฟล์เสียง S4 Follow-up ---
         const playS4 = () => {
             window.answerHBtn.disabled = true;
             const isHealth = selectedProductType === 'health';
@@ -293,13 +291,15 @@
                 }
             };
         }
-
-        // 🚨 FIXED: Prioritize selectedProductType, then 'health'
+        
+        // 🚨 FIXED: ตรงนี้แก้ให้ค้นหาไฟล์จาก Product ที่เลือกก่อน ถ้าไม่มีค่อยใช้ Health
         const playS4FollowUp = () => {
             window.followUpQBtn.disabled = true;
             
-            // ค้นหาไฟล์จากแบบประกันที่เลือกก่อน ถ้าไม่มีให้ใช้ของ Health
+            // 1. ลองหาจากแบบประกันที่เลือก (เช่น saving1)
             let fileData = (globalS4FollowUpReplies[selectedProductType] || []).find(f => f.step_index === followUpStep);
+            
+            // 2. ถ้าไม่มี ให้ใช้ของ Health เป็นสำรอง
             if (!fileData) {
                 fileData = (globalS4FollowUpReplies['health'] || []).find(f => f.step_index === followUpStep);
             }
@@ -315,8 +315,8 @@
             };
         }
         
+        // 🚨 FIXED: ทำแบบเดียวกันสำหรับ S5 Registration
         const playS5 = () => {
-            // ค้นหาขั้นตอนจากแบบประกันที่เลือกก่อน ถ้าไม่มีให้ใช้ของ Health (เผื่อไว้)
             let step = (globalS5Steps[selectedProductType] || []).find(s => s.step_index === aRound);
             if (!step) {
                 step = (globalS5Steps['health'] || []).find(s => s.step_index === aRound);
@@ -331,11 +331,9 @@
             };
         }
 
-        // 🚨 FIXED: Prioritize selectedProductType for Name Text
         const updateS4UI = () => {
             const d = document.getElementById('healthQuestionDisplay');
             if (isFollowUpMode) {
-                // ค้นหาชื่อคำถามจากแบบประกันที่เลือกก่อน
                 let fList = globalS4FollowUpNames[selectedProductType] || [];
                 if (fList.length === 0) fList = globalS4FollowUpNames['health'] || [];
 
@@ -348,10 +346,8 @@
                 window.answerHBtn.textContent = `🎙️ บันทึกคำถามสุขภาพข้อ ${currentHIndex+1}`;
             } else { d.innerHTML = "<p>✅ เสร็จสิ้น</p>"; }
         }
-        
         const updateStepHighlight = (step) => {
             window.stepList.innerHTML = '';
-            // ใช้ fallback logic สำหรับ list step เช่นกัน
             let steps = globalS5Steps[selectedProductType] || [];
             if (steps.length === 0) steps = globalS5Steps['health'] || [];
 
@@ -362,11 +358,9 @@
             });
         }
 
-        // --- RECORDING ---
         const toggleRecording = async (type) => {
             let btn, status, nextAction, part, qNum, qText, url = lastCustomerAudioUrl;
             
-            // Binding Variables Manually to avoid scope issues
             if (type===1) { btn=document.getElementById("recordBtn"); status=document.getElementById("status"); nextAction=endTurn; part=1; qNum=turn+1; qText=`S1 Turn ${qNum}`; }
             else if (type===2) { btn=document.getElementById("answerBtn"); status=document.getElementById("qStatus"); nextAction=playS2; part=2; qNum=qRound; qText=`S2 Q${qNum}`; }
             else if (type===3) { btn=document.getElementById("closeBtn"); status=document.getElementById("cStatus"); nextAction=playS3; part=3; qNum=0; qText=`S3 Closing`; url="SCRIPT"; }
@@ -390,7 +384,7 @@
                         btn.textContent = "🎙️ บันทึก"; btn.disabled = true;
                         stream.getTracks().forEach(t => t.stop());
                         setTimeout(nextAction, 500);
-                        mediaRecorder = null; // Reset recorder
+                        mediaRecorder = null; 
                     };
                     
                     mediaRecorder.start();
