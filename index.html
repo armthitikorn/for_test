@@ -198,7 +198,7 @@
                 <hr>
             </div>
 
-            <div id="section2Div">
+            <div id="section2Div" style="display: none;">
                 <h2>❓ ช่วงที่ 2: ตอบคำถามลูกค้า (Q <span id="qRound">1</span>/<span id="maxQSpan">10</span>)</h2>
                 <audio id="questionAudio"></audio>
                 <button disabled id="startQBtn">🔊 เริ่มคำถามลูกค้า</button>
@@ -271,8 +271,9 @@
 
         // State Variables
         let mediaRecorder = null;
-        let currentUserId = localStorage.getItem('roleplay_user_id') || uuidv4();
-        localStorage.setItem('roleplay_user_id', currentUserId);
+        const USER_ID_KEY = 'roleplay_user_id'; // 👈 FIX: ประกาศตัวแปรที่หายไป
+        let currentUserId = localStorage.getItem(USER_ID_KEY) || uuidv4();
+        localStorage.setItem(USER_ID_KEY, currentUserId);
         
         let allRecordings = []; 
         let lastCustomerAudioUrl = 'N/A';
@@ -290,6 +291,26 @@
         const NO_ANSWER_URL = "https://wzwyotzzxycqfwercakh.supabase.co/storage/v1/object/public/responses/part1/P1Q3/health5_P1_P1Q3_1762340907852.webm"; 
         
         const H_FOLLOW_UP_NAMES_HARDCODE = [ "1. เป็นมานานเท่าไหร่", "2. ลักษณะอาการเป็นอย่างไร", "3. วิธีการรักษาของแพทย์", "4. ตรวจครั้งล่าสุดเมื่อไหร่", "5. ผลตรวจเป็นอย่างไร" ];
+        
+        // --- Global DOM Elements (จะถูกกำหนดค่าใน initializeUserAndDOM และ startTest) ---
+        // Span elements for dynamic numbering (ตัวการของปัญหา)
+        window.turnSpan = null; window.maxTurnSpan = null;
+        window.qRoundSpan = null; window.maxQSpan = null;
+        window.cRoundSpan = null; window.maxCSpan = null;
+        window.aRoundSpan = null; window.maxASpan = null;
+        
+        // Section Element references
+        window.s1StatusElement = null; window.s2StatusElement = null; window.s3StatusElement = null;
+        window.hStatusElement = null; window.aStatusElement = null; window.pitchStatusElement = null;
+        window.followUpQBtn = null;
+        
+        // Control Buttons
+        window.recordBtn = null; window.nextRoundBtn = null; window.pitchRecordBtn = null; 
+        window.nextSection2Btn = null; window.startQBtn = null; window.answerBtn = null;
+        window.nextSection3Btn = null; window.closeBtn = null; window.replyBtn = null;
+        window.nextSection4Btn = null; window.answerHBtn = null; window.nextSection5Btn = null;
+        window.answerABtn = null; window.finalSaveBtn = null;
+
 
         // --- Utility Functions ---
         const fetchInitialData = async function() {
@@ -425,7 +446,7 @@
         
         const initSection1_5 = () => {
             document.getElementById('section1Div').style.display='none'; document.getElementById('section1_5Div').style.display='block';
-            document.getElementById('section2Div').style.display='none'; // Hide S2 when moving from S1
+            document.getElementById('section2Div').style.display='none'; // Hide S2
             window.pitchRecordBtn.disabled=false; 
             lastCustomerAudioUrl = 'S1.5 Pitch'; 
             window.pitchStatusElement.textContent = "✅ เริ่มช่วง 1.5"; alert("จบบทที่ 1! เริ่มช่วง 1.5 Pitch");
@@ -439,7 +460,7 @@
             lastCustomerAudioUrl = 'S2 Start'; window.s2StatusElement.textContent = "✅ เริ่มช่วง 2"; alert("เริ่มช่วง 2: ตอบคำถาม");
         }
         
-        // 🚨 playS2 ที่ได้รับการแก้ไข (เพื่อให้แน่ใจว่าใช้ window element ที่ถูกต้อง)
+        // 🚨 playS2 ที่ได้รับการแก้ไข (Safety Check อยู่ใน startTest)
         const playS2 = () => {
             if (qRound >= maxQ) { 
                 window.s2StatusElement.textContent = "🎉 จบบทที่ 2"; 
@@ -448,7 +469,7 @@
             }
             
             qRound++; 
-            window.qRoundSpan.textContent = qRound; // 👈 ตรงนี้ที่เคยเป็นปัญหา
+            if (window.qRoundSpan) window.qRoundSpan.textContent = qRound; // 👈 Safety Check
             
             const file = (globalS2Files[selectedProductType] || []).find(f => f.q_index === qRound);
             window.questionAudio = playAudio(file?.audio_url, window.s2StatusElement, window.answerBtn);
@@ -462,7 +483,7 @@
         }
         const playS3 = () => {
             if (cRound >= maxC) { window.s3StatusElement.textContent = "🎉 จบบทที่ 3"; window.nextSection4Btn.disabled = false; window.replyBtn.disabled = true; window.closeBtn.style.display='none'; return; }
-            cRound++; window.cRoundSpan.textContent = cRound;
+            cRound++; if (window.cRoundSpan) window.cRoundSpan.textContent = cRound;
             if(cRound===1) window.closeBtn.style.display = 'none';
             const file = (globalS3Files[selectedProductType] || []).find(f => f.ob_index === cRound);
             window.objectionAudio = playAudio(file?.audio_url, window.s3StatusElement, window.replyBtn);
@@ -518,8 +539,8 @@
         
         const initSection5 = () => {
             document.getElementById('section4Div').style.display='none'; document.getElementById('section5Div').style.display='block';
-            maxA = globalConfig[document.querySelector('input[name="difficulty"]:checked').value]?.S5 || 7; window.maxASpan.textContent=maxA;
-            aRound=1; window.aRoundSpan.textContent=1; renderRegistrationSteps(); updateStepHighlight(1);
+            maxA = globalConfig[document.querySelector('input[name="difficulty"]:checked').value]?.S5 || 7; if(window.maxASpan) window.maxASpan.textContent=maxA;
+            aRound=1; if(window.aRoundSpan) window.aRoundSpan.textContent=1; renderRegistrationSteps(); updateStepHighlight(1);
             window.answerABtn.disabled=false; window.answerABtn.textContent=`🎙️ บันทึกขั้นตอน 1`;
             alert(`เริ่มช่วง 5: ลงทะเบียน`);
         }
@@ -629,32 +650,17 @@
         }
 
         const initializeUserAndDOM = async () => {
-            let userId = localStorage.getItem(USER_ID_KEY);
-            if (!userId) {
-                userId = uuidv4();
-                localStorage.setItem(USER_ID_KEY, userId);
-            }
-            currentUserId = userId;
-            
-            // 2. DOM Element Assignments 
-            // ... [Binding Code]
-            
-            // Section 1
+            // 2. DOM Element Assignments (Binding Once on Load)
             window.s1StatusElement = document.getElementById("status"); 
             window.recordBtn = document.getElementById("recordBtn");
             window.nextRoundBtn = document.getElementById("nextRoundBtn");
             window.customerAudio = document.getElementById("customerAudio");
-            window.turnSpan = document.getElementById("turnSpan");
-            window.maxTurnSpan = document.getElementById("maxTurnSpan");
             
-            // Section 1.5
             window.pitchRecordBtn = document.getElementById("pitchRecordBtn");
             window.nextSection2Btn = document.getElementById("nextSection2Btn");
             window.pitchStatusElement = document.getElementById("pitchStatus");
             
-            // Section 2
-            window.qRoundSpan = document.getElementById("qRound");
-            window.maxQSpan = document.getElementById("maxQSpan");
+            // Section 2 Elements
             window.s2StatusElement = document.getElementById("qStatus"); 
             window.startQBtn = document.getElementById("startQBtn");
             window.answerBtn = document.getElementById("answerBtn");
@@ -662,8 +668,6 @@
             window.questionAudio = document.getElementById("questionAudio");
             
             // Section 3
-            window.cRoundSpan = document.getElementById("cRound");
-            window.maxCSpan = document.getElementById("maxCSpan");
             window.s3StatusElement = document.getElementById("cStatus"); 
             window.closeBtn = document.getElementById("closeBtn");
             window.replyBtn = document.getElementById("replyBtn");
@@ -678,15 +682,13 @@
             window.healthAudio = document.getElementById("healthAudio");
             
             // Section 5
-            window.aRoundSpan = document.getElementById("aRound");
-            window.maxASpan = document.getElementById("maxASpan");
             window.aStatusElement = document.getElementById("aStatus"); 
             window.answerABtn = document.getElementById("answerABtn");
             window.finalSaveBtn = document.getElementById("finalSaveBtn");
             window.agreementAudio = document.getElementById("agreementAudio");
             window.stepList = document.getElementById("stepList"); 
 
-            // Dynamic Button for S4 (ต้องเช็คว่า nextSection5Btn มีอยู่จริง)
+            // Dynamic Button for S4 (Safe Check)
             if (window.nextSection5Btn) {
                 window.followUpQBtn = document.createElement('button');
                 window.followUpQBtn.textContent = '🎙️ ซักประวัติ'; window.followUpQBtn.style.display = 'none';
@@ -717,8 +719,8 @@
             if(!globalS1Files['health']) { document.getElementById("startTestBtn").disabled = true; alert("โหลดข้อมูลไม่สำเร็จ"); }
         }
 
+        // 🚨 Final Start Test Function (Binding the Span Elements Safely)
         const startTest = function() {
-            // ... (Logic remains the same, but now uses correctly bound elements)
             const userName = document.getElementById('inputUserName').value.trim();
             const inputProductType = document.getElementById('inputProductType').value; 
             const inputUserGroup = document.getElementById('inputUserGroup').value;     
@@ -740,6 +742,21 @@
             maxA = config.S5; 
             maxFollowUp = globalS4FollowUpNames[selectedProductType] ? globalS4FollowUpNames[selectedProductType].length : 5;
 
+            // 🔥 CRITICAL FIX: Binding Span Elements NOW
+            window.turnSpan = document.getElementById("turnSpan");
+            window.maxTurnSpan = document.getElementById("maxTurnSpan");
+            window.qRoundSpan = document.getElementById("qRound");
+            window.maxQSpan = document.getElementById("maxQSpan");
+            window.cRoundSpan = document.getElementById("cRound");
+            window.maxCSpan = document.getElementById("maxCSpan");
+            window.aRoundSpan = document.getElementById("aRound");
+            window.maxASpan = document.getElementById("maxASpan");
+            
+            if (!window.qRoundSpan) {
+                 console.error("CRITICAL ERROR: qRoundSpan is NULL. DOM structure is faulty.");
+                 alert("โครงสร้างหน้าเว็บไม่สมบูรณ์! กรุณาตรวจสอบว่าได้ก๊อปปี้ไฟล์ index.html ทั้งหมดหรือไม่");
+                 return;
+            }
 
             window.maxTurnSpan.textContent = maxTurns;
             window.maxQSpan.textContent = maxQ;
