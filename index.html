@@ -198,12 +198,12 @@
                 <hr>
             </div>
 
-            <div id="section2Div" style="display: none;">
-                <h2>❓ ช่วงที่ 2: ตอบคำถามลูกค้า (รอบที่ <span id="qRound">1</span>/<span id="maxQSpan">10</span>)</h2>
+            <div id="section2Div">
+                <h2>❓ ช่วงที่ 2: ตอบคำถามลูกค้า (Q <span id="qRound">1</span>/<span id="maxQSpan">10</span>)</h2>
                 <audio id="questionAudio"></audio>
                 <button disabled id="startQBtn">🔊 เริ่มคำถามลูกค้า</button>
                 <button disabled id="answerBtn">🎙️ เริ่มบันทึกคำตอบ</button>
-                <button disabled id="nextSection3Btn">✅ จบบทที่ 2 (ไปช่วงที่ 3)</button>
+                <button disabled id="nextSection3Btn">✅ จบบทที่ 2</button>
                 <p id="qStatus">รอเริ่มช่วงที่ 2</p>
                 <hr>
             </div>
@@ -425,6 +425,7 @@
         
         const initSection1_5 = () => {
             document.getElementById('section1Div').style.display='none'; document.getElementById('section1_5Div').style.display='block';
+            document.getElementById('section2Div').style.display='none'; // Hide S2 when moving from S1
             window.pitchRecordBtn.disabled=false; 
             lastCustomerAudioUrl = 'S1.5 Pitch'; 
             window.pitchStatusElement.textContent = "✅ เริ่มช่วง 1.5"; alert("จบบทที่ 1! เริ่มช่วง 1.5 Pitch");
@@ -432,13 +433,23 @@
         const endPitchRecording = () => { window.pitchStatusElement.textContent = "🎉 บันทึกเสร็จสิ้น"; window.nextSection2Btn.disabled=false; window.pitchRecordBtn.disabled=true; }
         
         const initSection2 = () => {
-            document.getElementById('section1_5Div').style.display='none'; document.getElementById('section2Div').style.display='block';
+            document.getElementById('section1_5Div').style.display='none'; 
+            document.getElementById('section2Div').style.display='block'; // Show S2
             window.startQBtn.disabled=false; qRound=0; 
             lastCustomerAudioUrl = 'S2 Start'; window.s2StatusElement.textContent = "✅ เริ่มช่วง 2"; alert("เริ่มช่วง 2: ตอบคำถาม");
         }
+        
+        // 🚨 playS2 ที่ได้รับการแก้ไข (เพื่อให้แน่ใจว่าใช้ window element ที่ถูกต้อง)
         const playS2 = () => {
-            if (qRound >= maxQ) { window.s2StatusElement.textContent = "🎉 จบบทที่ 2"; window.nextSection3Btn.disabled = false; return; }
-            qRound++; window.qRoundSpan.textContent = qRound;
+            if (qRound >= maxQ) { 
+                window.s2StatusElement.textContent = "🎉 จบบทที่ 2"; 
+                window.nextSection3Btn.disabled = false; 
+                return; 
+            }
+            
+            qRound++; 
+            window.qRoundSpan.textContent = qRound; // 👈 ตรงนี้ที่เคยเป็นปัญหา
+            
             const file = (globalS2Files[selectedProductType] || []).find(f => f.q_index === qRound);
             window.questionAudio = playAudio(file?.audio_url, window.s2StatusElement, window.answerBtn);
             if(qRound===1) window.startQBtn.style.display = 'none';
@@ -617,70 +628,74 @@
             } else { alert("Upload incomplete"); document.getElementById("finalSaveBtn").disabled = false; }
         }
 
-        const init = async () => {
-            // Binding Global Elements explicitly
-            window.s1StatusElement = document.getElementById("status");
-            window.s2StatusElement = document.getElementById("qStatus");
-            window.s3StatusElement = document.getElementById("cStatus");
-            window.hStatusElement = document.getElementById("hStatus");
-            window.aStatusElement = document.getElementById("aStatus");
-            window.pitchStatusElement = document.getElementById("pitchStatus");
-
+        const initializeUserAndDOM = async () => {
+            let userId = localStorage.getItem(USER_ID_KEY);
+            if (!userId) {
+                userId = uuidv4();
+                localStorage.setItem(USER_ID_KEY, userId);
+            }
+            currentUserId = userId;
+            
+            // 2. DOM Element Assignments 
+            // ... [Binding Code]
+            
+            // Section 1
+            window.s1StatusElement = document.getElementById("status"); 
             window.recordBtn = document.getElementById("recordBtn");
+            window.nextRoundBtn = document.getElementById("nextRoundBtn");
+            window.customerAudio = document.getElementById("customerAudio");
+            window.turnSpan = document.getElementById("turnSpan");
+            window.maxTurnSpan = document.getElementById("maxTurnSpan");
+            
+            // Section 1.5
+            window.pitchRecordBtn = document.getElementById("pitchRecordBtn");
+            window.nextSection2Btn = document.getElementById("nextSection2Btn");
+            window.pitchStatusElement = document.getElementById("pitchStatus");
+            
+            // Section 2
+            window.qRoundSpan = document.getElementById("qRound");
+            window.maxQSpan = document.getElementById("maxQSpan");
+            window.s2StatusElement = document.getElementById("qStatus"); 
+            window.startQBtn = document.getElementById("startQBtn");
             window.answerBtn = document.getElementById("answerBtn");
+            window.nextSection3Btn = document.getElementById("nextSection3Btn");
+            window.questionAudio = document.getElementById("questionAudio");
+            
+            // Section 3
+            window.cRoundSpan = document.getElementById("cRound");
+            window.maxCSpan = document.getElementById("maxCSpan");
+            window.s3StatusElement = document.getElementById("cStatus"); 
             window.closeBtn = document.getElementById("closeBtn");
             window.replyBtn = document.getElementById("replyBtn");
-            window.answerHBtn = document.getElementById("answerHBtn");
-            window.answerABtn = document.getElementById("answerABtn");
-            window.pitchRecordBtn = document.getElementById("pitchRecordBtn");
-            window.nextRoundBtn = document.getElementById("nextRoundBtn");
-            window.nextSection2Btn = document.getElementById("nextSection2Btn");
-            window.nextSection3Btn = document.getElementById("nextSection3Btn");
+            window.objectionAudio = document.getElementById("objectionAudio");
             window.nextSection4Btn = document.getElementById("nextSection4Btn");
-            // 🔥 FIXED: Check if element exists to avoid Null Error
-            window.nextSection5Btn = document.getElementById("nextSection5Btn");
             
+            // Section 4
+            window.hQName = document.getElementById("hQName");
+            window.hStatusElement = document.getElementById("hStatus");
+            window.answerHBtn = document.getElementById("answerHBtn");
+            window.nextSection5Btn = document.getElementById("nextSection5Btn");
+            window.healthAudio = document.getElementById("healthAudio");
+            
+            // Section 5
+            window.aRoundSpan = document.getElementById("aRound");
+            window.maxASpan = document.getElementById("maxASpan");
+            window.aStatusElement = document.getElementById("aStatus"); 
+            window.answerABtn = document.getElementById("answerABtn");
+            window.finalSaveBtn = document.getElementById("finalSaveBtn");
+            window.agreementAudio = document.getElementById("agreementAudio");
+            window.stepList = document.getElementById("stepList"); 
+
+            // Dynamic Button for S4 (ต้องเช็คว่า nextSection5Btn มีอยู่จริง)
             if (window.nextSection5Btn) {
                 window.followUpQBtn = document.createElement('button');
                 window.followUpQBtn.textContent = '🎙️ ซักประวัติ'; window.followUpQBtn.style.display = 'none';
                 window.followUpQBtn.style.backgroundColor = '#28a745'; window.followUpQBtn.style.color = 'white';
                 window.nextSection5Btn.parentNode.insertBefore(window.followUpQBtn, window.nextSection5Btn);
-            } else {
-                console.error("CRITICAL ERROR: 'nextSection5Btn' not found! Please update HTML Body.");
             }
 
-            document.getElementById("startTestBtn").onclick = () => {
-                selectedProductType = document.getElementById("inputProductType").value;
-                if(!selectedProductType) return alert("เลือกแบบประกัน");
-                
-                const diff = document.querySelector('input[name="difficulty"]:checked').value;
-                maxTurns = globalConfig[diff].S1; maxQ = globalConfig[diff].S2;
-                maxC = globalConfig[diff].S3; maxH = (selectedProductType==='health')?globalConfig[diff].S4:1; 
-                maxA = globalConfig[diff].S5;
-                
-                // Reset State
-                turn=0; qRound=0; cRound=0; currentHIndex=0; aRound=0; allRecordings=[];
-                maxFollowUp = globalS4FollowUpNames[selectedProductType] ? globalS4FollowUpNames[selectedProductType].length : 5;
-                
-                window.maxTurnSpan = document.getElementById("maxTurnSpan"); window.maxTurnSpan.textContent = maxTurns;
-                window.maxQSpan = document.getElementById("maxQSpan"); window.maxQSpan.textContent = maxQ;
-                window.maxCSpan = document.getElementById("maxCSpan"); window.maxCSpan.textContent = maxC;
-                window.maxASpan = document.getElementById("maxASpan"); window.maxASpan.textContent = maxA;
-
-                prepareTurnFiles();
-                
-                document.getElementById("registrationSection").style.display = 'none';
-                document.getElementById("testSection").style.display = 'block';
-                document.getElementById("section1Div").style.display = 'block';
-                document.getElementById('section1_5Div').style.display='none'; document.getElementById('section2Div').style.display='none';
-                document.getElementById('section3Div').style.display='none'; document.getElementById('section4Div').style.display='none';
-                document.getElementById('section5Div').style.display='none';
-                
-                window.recordBtn.disabled=false;
-                window.turnSpan.textContent = 1;
-                window.s1StatusElement.textContent = `🎤 พร้อมบันทึกบทพูดเปิดตัว (เทิร์นที่ 1/${maxTurns})`;
-            };
-
+            // 3. Bind Event Listeners
+            document.getElementById("startTestBtn").onclick = startTest;
             window.recordBtn.onclick = () => toggleRecording(1);
             window.nextRoundBtn.onclick = initSection1_5;
             window.pitchRecordBtn.onclick = () => toggleRecording(8);
@@ -702,12 +717,63 @@
             if(!globalS1Files['health']) { document.getElementById("startTestBtn").disabled = true; alert("โหลดข้อมูลไม่สำเร็จ"); }
         }
 
-        // 🔥 FIXED: Wrap init in event listener to ensure DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
+        const startTest = function() {
+            // ... (Logic remains the same, but now uses correctly bound elements)
+            const userName = document.getElementById('inputUserName').value.trim();
+            const inputProductType = document.getElementById('inputProductType').value; 
+            const inputUserGroup = document.getElementById('inputUserGroup').value;     
+            const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
+            const config = globalConfig[selectedDifficulty];
+
+            if (!userName || !inputUserGroup || !inputProductType) {
+                alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนเริ่มทำแบบทดสอบ");
+                return;
+            }
+            
+            selectedProductType = inputProductType;
+            userGroup = inputUserGroup;
+
+            maxTurns = config.S1;
+            maxQ = config.S2;
+            maxC = config.S3;
+            maxH = config.S4;
+            maxA = config.S5; 
+            maxFollowUp = globalS4FollowUpNames[selectedProductType] ? globalS4FollowUpNames[selectedProductType].length : 5;
+
+
+            window.maxTurnSpan.textContent = maxTurns;
+            window.maxQSpan.textContent = maxQ;
+            window.maxCSpan.textContent = maxC;
+            window.maxASpan.textContent = maxA; 
+
+            document.getElementById("registrationSection").style.display = 'none';
+            document.getElementById("testSection").style.display = 'block';
+
+            document.getElementById('section1Div').style.display = 'block';
+            document.getElementById('section1_5Div').style.display = 'none';
+            document.getElementById('section2Div').style.display = 'none';
+            document.getElementById('section3Div').style.display = 'none';
+            document.getElementById('section4Div').style.display = 'none';
+            document.getElementById('section5Div').style.display = 'none';
+
+            lastCustomerAudioUrl = 'S1 Initial Greeting (No Customer Audio)';
+
+            if (!globalS1Files[selectedProductType] || globalS1Files[selectedProductType].length === 0) {
+                 alert(`❌ ไม่พบข้อมูลไฟล์เสียงสำหรับ Product Type "${selectedProductType}" ในตาราง customer_replies_s1 กรุณาตรวจสอบการตั้งค่า Supabase`);
+                 document.getElementById("registrationSection").style.display = 'block';
+                 document.getElementById("testSection").style.display = 'none';
+                 return;
+            }
+
+            prepareTurnFiles(); 
+            window.recordBtn.disabled = false;
+            window.turnSpan.textContent = 1;
+            window.s1StatusElement.textContent = `🎤 พร้อมบันทึกบทพูดเปิดตัว (เทิร์นที่ 1/${maxTurns})`;
         }
+
+
+        document.addEventListener('DOMContentLoaded', initializeUserAndDOM);
+        
     </script>
 </body>
 </html>
